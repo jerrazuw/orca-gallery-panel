@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Display settings menu in the panel: blurred background, Ken Burns zoom and the image name, each
+  with a switch. Like the interval, changes last until the panel reloads.
+- Blurred background behind images that don't fill the panel, on by default (`--no-blur` or
+  `"blur": false` turns it off).
+- Ken Burns effect: a slow zoom while each image is shown (`--effect kenburns`).
+- Image name at the top of the panel (`--caption`).
+- `--watch`: rebuilds when images or the config file change, collapsing bursts into one build.
+- Several galleries in one plugin, one panel each, through `galleries` in the config file.
+  Panels of galleries that were removed are cleaned up on the next build, and the size check
+  also covers Orca's 50 MiB limit for a whole plugin.
+- The CLI can be packed and installed from npm as `orca-gallery-panel`. CI checks the packed
+  package in an empty project.
+
 ## [1.1.0] - 2026-10-18
 
 ### Added

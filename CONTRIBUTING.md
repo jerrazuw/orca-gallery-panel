@@ -31,6 +31,14 @@ to the `Unreleased` section of [CHANGELOG.md](CHANGELOG.md).
 - Add a new interface string to every catalog in `src/panel/i18n.ts`. A test checks that they
   stay in sync.
 
+## Publishing to npm
+
+The package is marked `"private": true` so it can't be published by accident. To publish it:
+
+1. Remove `"private": true` from `package.json`.
+2. Check what will be published with `npm pack --dry-run` (it compiles `lib/` first).
+3. Run `npm publish`. After that, anyone can run `npx orca-gallery-panel <folder>`.
+
 ## Releasing
 
 1. Move the `Unreleased` notes in `CHANGELOG.md` under a new version heading.
