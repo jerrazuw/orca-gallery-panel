@@ -11,6 +11,9 @@ updates:
       # typescript-eslint supports TypeScript < 6.1; lift this when it supports newer versions.
       - dependency-name: typescript
         versions: ['>=6.1']
+      # Types must match the oldest Node the package supports (engines: >=22.18).
+      - dependency-name: '@types/node'
+        versions: ['>=23']
   - package-ecosystem: github-actions
     directory: /
     schedule:
