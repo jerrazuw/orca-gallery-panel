@@ -5,6 +5,10 @@
   --gallery-surface: var(--secondary, #262626);
   --gallery-border: var(--border, rgb(255 255 255 / 0.1));
   --gallery-ring: var(--ring, #a1a1a1);
+  --gallery-input: var(--input, rgb(255 255 255 / 0.15));
+  --gallery-primary: var(--primary, #e5e5e5);
+  --gallery-primary-fg: var(--primary-foreground, #171717);
+  --gallery-danger: var(--destructive, #f87171);
   --gallery-radius: var(--radius, 0.625rem);
   --gallery-fade: 600ms;
 }
@@ -96,6 +100,7 @@ body.message .layer {
 
 body:hover .controls,
 .controls:focus-within,
+body.editing .controls,
 body.paused .controls {
   opacity: 1;
 }
@@ -159,8 +164,82 @@ body[data-fit='cover'] .icon-fit {
 body.single [data-action='previous'],
 body.single [data-action='next'],
 body.single [data-action='toggle'],
+body.single [data-action='interval'],
 body.single .counter {
   display: none;
+}
+
+.control[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--gallery-fg) 16%, transparent);
+}
+
+.interval-editor {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: 200px;
+  padding: 10px;
+  border: 1px solid var(--gallery-border);
+  border-radius: var(--gallery-radius);
+  background: var(--gallery-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+.interval-editor[hidden] {
+  display: none;
+}
+
+.interval-editor label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.interval-row {
+  display: flex;
+  gap: 6px;
+}
+
+.interval-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--gallery-input);
+  border-radius: calc(var(--gallery-radius) - 4px);
+  background: var(--gallery-bg);
+  color: var(--gallery-fg);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.interval-row input:focus-visible,
+.apply:focus-visible {
+  outline: 2px solid var(--gallery-ring);
+  outline-offset: 1px;
+}
+
+.interval-row input[aria-invalid='true'] {
+  border-color: var(--gallery-danger);
+}
+
+.apply {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: calc(var(--gallery-radius) - 4px);
+  background: var(--gallery-primary);
+  color: var(--gallery-primary-fg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hint {
+  margin: 6px 0 0;
+  color: var(--gallery-muted);
+}
+
+.hint.error {
+  color: var(--gallery-danger);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { parseConfig } from '../src/panel/config.ts';
+import { MAX_INTERVAL_SECONDS, parseConfig, parseIntervalSeconds } from '../src/panel/config.ts';
 
 const valid = {
   images: [{ src: 'data:image/webp;base64,AAAA', label: 'cat' }],
@@ -35,4 +35,18 @@ describe('parseConfig', () => {
     assert.throws(() => parseConfig(null), TypeError);
     assert.throws(() => parseConfig({ ...valid, images: 'nope' }), /images/);
   });
+});
+
+describe('parseIntervalSeconds', () => {
+  it('accepts whole seconds in range, ignoring surrounding spaces', () => {
+    assert.equal(parseIntervalSeconds('60'), 60);
+    assert.equal(parseIntervalSeconds(' 0 '), 0);
+    assert.equal(parseIntervalSeconds(String(MAX_INTERVAL_SECONDS)), MAX_INTERVAL_SECONDS);
+  });
+
+  for (const text of ['', '  ', 'abc', '1.5', '-3', '1e3', String(MAX_INTERVAL_SECONDS + 1)]) {
+    it(`rejects ${JSON.stringify(text)}`, () => {
+      assert.equal(parseIntervalSeconds(text), undefined);
+    });
+  }
 });
