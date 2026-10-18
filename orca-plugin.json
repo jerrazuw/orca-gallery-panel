@@ -1,0 +1,14 @@
+{
+  "manifestVersion": 1,
+  "id": "monas-chinas",
+  "publisher": "jerrazuw",
+  "name": "Monas chinas",
+  "version": "1.0.0",
+  "description": "Panel lateral con una imagen al azar de la carpeta imagenes/. Clic para cambiarla.",
+  "engines": { "orca": ">=1.4.0" },
+  "pluginApi": 1,
+  "contributes": {
+    "panels": [{ "id": "monas", "title": "Monas chinas", "icon": "image", "entry": "panel.html" }]
+  },
+  "capabilities": []
+}
