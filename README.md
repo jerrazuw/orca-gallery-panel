@@ -12,11 +12,17 @@ gallery of your own images while you work: wallpapers, photos, art, mood boards.
 
 - **Slideshow**: shuffles your images and changes them on an interval you choose. Every image
   shows once before any repeats, and the same one never appears twice in a row.
-- **Controls** on hover: previous, pause/resume, next, a position counter, interval and
-  fit/fill.
-- **Change the interval from the panel**: click the clock and type the seconds between images
-  (`0` stops the automatic change). It lasts until Orca reloads the panel: Orca gives panels no
-  storage, so the default comes from the build settings.
+- **Controls** on hover: previous, pause/resume, next, a position counter, interval, display
+  settings and fit/fill.
+- **Settings in the panel**: click the clock to type the seconds between images (`0` stops the
+  automatic change), or the sliders to turn on a blurred background, a slow Ken Burns zoom or
+  the image's name. Changes last until Orca reloads the panel, because Orca gives panels no
+  storage; the defaults come from your build settings.
+- **Blurred background**: an image that doesn't fill the panel sits on a blurred copy of itself
+  instead of empty bars.
+- **Several galleries**, each in its own panel, from one config file.
+- **Watch mode**: `--watch` rebuilds whenever you add or remove images, and Orca reloads the
+  panel, so a new photo shows up without touching the terminal.
 - **Keyboard**: `←` / `→` to navigate, `Space` to pause, `F` to switch between fit and fill.
 - **Matches Orca's theme**, light or dark, using the design tokens Orca gives every panel.
 - **Any common format**: PNG, JPEG, GIF, WebP, AVIF and TIFF. Animated GIF and WebP stay
@@ -68,6 +74,10 @@ and `--config <file>` reads a different one.
 Add or remove files in your folder and run `npm run build` again. A plugin loaded from
 **Development** reloads on its own.
 
+Or leave `npm run build -- --watch` running: it rebuilds whenever an image in your folders or
+the config file changes, and a burst of changes (copying 20 photos at once) triggers a single
+rebuild.
+
 If you installed it with **Install plugin → Local folder** instead, Orca keeps a copy, so you
 need to install it again after each build.
 
@@ -82,11 +92,39 @@ need to install it again after each build.
 | `-s, --max-size <px>`   | `maxSize`   | `800`     | Longest side of each image, in pixels.            |
 | `-q, --quality <1-100>` | `quality`   | `80`      | WebP quality.                                     |
 | `--fit <mode>`          | `fit`       | `contain` | Initial mode: `contain` (whole image) or `cover`. |
+| `--effect <name>`       | `effect`    | `none`    | `none`, or `kenburns` for a slow zoom.            |
+| `--no-blur`             | `blur`      | `true`    | Blurred background behind images.                 |
+| `--caption`             | `caption`   | `false`   | Show the image's file name.                       |
 | `-r, --recursive`       | `recursive` | `false`   | Include images in subfolders.                     |
+|                         | `galleries` |           | Several galleries; see above.                     |
+| `-w, --watch`           |             |           | Rebuild when images or the config file change.    |
 | `-c, --config <file>`   |             |           | Config file to read instead of the default.       |
 
-Precedence: command line, then `gallery.config.json`, then the defaults. Paths in the config
-file are relative to the file, and `~` means your home folder.
+Precedence: command line, then the gallery's own settings, then the top level of
+`gallery.config.json`, then the defaults. Paths in the config file are relative to the file, and
+`~` means your home folder. The `fit`, `interval`, `blur`, `effect` and `caption` settings are
+only where the panel starts: you can change them from the panel itself.
+
+### Several galleries
+
+List them under `galleries`. Each one becomes its own panel in Orca. Settings at the top level
+apply to every gallery unless it sets its own; the top-level `title` names the plugin, and a
+gallery without a `title` is named after its folder.
+
+```json
+{
+  "$schema": "./gallery.config.schema.json",
+  "title": "My galleries",
+  "interval": 120,
+  "galleries": [
+    { "folder": "~/Pictures/wallpapers", "title": "Wallpapers", "effect": "kenburns" },
+    { "folder": "~/Pictures/art", "interval": 30, "caption": true }
+  ]
+}
+```
+
+Each panel has to stay under Orca's 10 MiB limit for a panel, and all of them together under
+its 50 MiB limit for a plugin.
 
 ## How it works
 
@@ -105,7 +143,8 @@ So the images are packed into the panel when you build it:
    `panel.html`.
 4. `src/build.ts` checks the result against Orca's 10 MiB limit for a panel. If it's over, it
    names the largest images and suggests what to change.
-5. `src/manifest.ts` writes `orca-plugin.json`, taking the version from `package.json`.
+5. `src/manifest.ts` writes `orca-plugin.json`, taking the version from `package.json`, with
+   one panel per gallery.
 
 At the default settings a typical photo ends up around 40 KB, so the limit fits a couple of
 hundred images. Animated GIFs are much heavier.
@@ -123,13 +162,17 @@ npm run preview      # writes dist/preview.html: the built panel inside an Orca-
 | `src/cli.ts`, `src/options.ts` | Command-line entry point and argument parsing.                                |
 | `src/build.ts`                 | Builds the plugin: find, encode, render, check size, write.                   |
 | `src/panel/`                   | The code that runs inside Orca: slideshow, controls, translations and styles. |
+| `src/watch.ts`                 | Watch mode: reruns the build when the watched folders change.                 |
 | `src/preview.ts`               | Reproduces Orca's panel shell so the panel can be checked in a browser.       |
 | `test/`                        | Unit tests (`node:test`) and browser tests (`test/e2e/`, Playwright).         |
 | `examples/images/`             | Sample images, made by `scripts/generate-examples.ts`.                        |
 
 TypeScript runs directly on Node through
 [type stripping](https://nodejs.org/api/typescript.html#type-stripping), so there is no compile
-step. CI runs on Linux, macOS and Windows with Node 22.18, 22 and 24.
+step while you work on it. Node won't strip types inside `node_modules`, so the npm package is
+compiled to `lib/` by `npm run build:lib`, which `npm pack` runs on its own. CI runs on Linux,
+macOS and Windows with Node 22.18, 22 and 24, and installs the packed package in an empty
+project to check that the command works.
 
 ## Why it isn't in the Orca marketplace
 
