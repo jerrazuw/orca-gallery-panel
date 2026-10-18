@@ -6,7 +6,7 @@ import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { buildPlugin, BuildError, formatBytes, oversizeMessage } from '../src/build.ts';
 import { serializeConfig } from '../src/html.ts';
-import { parseCommand, type BuildOptions } from '../src/options.ts';
+import { parseCommand, resolveOptions, type BuildOptions } from '../src/options.ts';
 import { parseConfig } from '../src/panel/config.ts';
 
 const EXAMPLES = fileURLToPath(new URL('../examples/images/', import.meta.url));
@@ -15,7 +15,7 @@ const silent = { warn: () => undefined };
 function options(input: string, outDir: string, extra: string[] = []): BuildOptions {
   const command = parseCommand([input, '--out', outDir, ...extra]);
   assert.equal(command.kind, 'build');
-  return command.options;
+  return resolveOptions([{ settings: command.settings, baseDir: process.cwd() }], process.cwd());
 }
 
 function embeddedConfig(html: string): unknown {

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import { relative } from 'node:path';
+import { join, relative } from 'node:path';
 import pkg from '../package.json' with { type: 'json' };
 import { buildPlugin, BuildError, formatBytes, PANEL_ENTRY_MAX_BYTES } from './build.ts';
-import { HELP, parseCommand, UsageError } from './options.ts';
+import { loadConfigFile } from './config-file.ts';
+import { CONFIG_FILE, HELP, parseCommand, resolveOptions, UsageError } from './options.ts';
 
 async function main(argv: readonly string[]): Promise<number> {
   const command = parseCommand(argv);
@@ -15,13 +16,23 @@ async function main(argv: readonly string[]): Promise<number> {
     return 0;
   }
 
-  const result = await buildPlugin(command.options);
+  const cwd = process.cwd();
+  const configFile = await loadConfigFile(command.configPath ?? join(cwd, CONFIG_FILE), {
+    required: command.configPath !== undefined,
+  });
+  if (configFile) console.log(`Using settings from ${command.configPath ?? CONFIG_FILE}`);
+  const options = resolveOptions(
+    [...(configFile ? [configFile] : []), { settings: command.settings, baseDir: cwd }],
+    cwd,
+  );
+
+  const result = await buildPlugin(options);
   const relativeOut = relative(process.cwd(), result.outDir);
   const where =
     relativeOut === '' ? '.' : relativeOut.startsWith('..') ? result.outDir : relativeOut;
   const usage = ((result.panelBytes / PANEL_ENTRY_MAX_BYTES) * 100).toFixed(0);
   console.log(
-    `Built "${command.options.title}" with ${String(result.images.length)} images: ` +
+    `Built "${options.title}" with ${String(result.images.length)} images: ` +
       `${formatBytes(result.panelBytes)} (${usage}% of Orca's limit) in ${where}`,
   );
   if (result.skipped.length > 0) console.warn(`${String(result.skipped.length)} file(s) skipped.`);

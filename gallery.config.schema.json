@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orca Gallery Panel settings",
+  "description": "Saved options for `npm run build`. Command-line options override these.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "folder": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Folder with your images. Relative paths start from this file; ~ is your home folder.",
+      "default": "images"
+    },
+    "out": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Output folder for the plugin.",
+      "default": "dist"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Panel title shown in Orca.",
+      "default": "Gallery"
+    },
+    "interval": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 86400,
+      "description": "Seconds between images. 0 disables automatic rotation.",
+      "default": 180
+    },
+    "maxSize": {
+      "type": "integer",
+      "minimum": 16,
+      "maximum": 8192,
+      "description": "Longest side of each image, in pixels.",
+      "default": 800
+    },
+    "quality": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "WebP quality.",
+      "default": 80
+    },
+    "fit": {
+      "enum": ["contain", "cover"],
+      "description": "Initial mode: contain shows the whole image, cover fills the panel.",
+      "default": "contain"
+    },
+    "recursive": {
+      "type": "boolean",
+      "description": "Include images in subfolders.",
+      "default": false
+    }
+  }
+}
