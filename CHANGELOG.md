@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `gallery.config.json`: save your build settings once and rebuild with a plain `npm run build`.
+  Unknown keys and invalid values are reported instead of ignored. Command-line options still
+  override the file, and `--config <file>` picks a different one.
+- JSON Schema for the config file, for autocomplete and validation in editors.
+- Clock button in the panel toolbar to change the seconds between images while the panel is open.
+
 ## [1.0.0] - 2026-10-18
 
 ### Added
