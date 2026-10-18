@@ -1,14 +1,16 @@
-import { mkdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { encodeImage, type EncodedImage } from './encode.ts';
 import { renderPanelHtml } from './html.ts';
 import { findImages, labelFor } from './images.ts';
-import { createManifest, MANIFEST_FILE, PANEL_ENTRY } from './manifest.ts';
-import type { BuildOptions } from './options.ts';
+import { createManifest, isGeneratedPanelFile, MANIFEST_FILE, panelEntries } from './manifest.ts';
+import type { BuildOptions, GalleryOptions } from './options.ts';
 import type { GalleryImage } from './panel/config.ts';
 
 /** Orca rejects a panel entry above this size (PLUGIN_PANEL_ENTRY_MAX_BYTES). */
 export const PANEL_ENTRY_MAX_BYTES = 10 * 1024 * 1024;
+/** Orca rejects a whole plugin above this size. */
+export const PLUGIN_MAX_BYTES = 50 * 1024 * 1024;
 const ENCODE_CONCURRENCY = 4;
 
 export class BuildError extends Error {
@@ -23,11 +25,17 @@ export interface ImageReport {
   animated: boolean;
 }
 
-export interface BuildResult {
-  outDir: string;
+export interface GalleryResult {
+  title: string;
+  entry: string;
   panelBytes: number;
   images: ImageReport[];
   skipped: { file: string; reason: string }[];
+}
+
+export interface BuildResult {
+  outDir: string;
+  galleries: GalleryResult[];
 }
 
 export interface Logger {
@@ -57,7 +65,11 @@ export function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function oversizeMessage(panelBytes: number, images: readonly ImageReport[]): string {
+export function oversizeMessage(
+  title: string,
+  panelBytes: number,
+  images: readonly ImageReport[],
+): string {
   const largest = [...images]
     .sort((a, b) => b.bytes - a.bytes)
     .slice(0, 5)
@@ -66,7 +78,7 @@ export function oversizeMessage(panelBytes: number, images: readonly ImageReport
         `  ${formatBytes(image.bytes).padStart(8)}  ${basename(image.file)}${image.animated ? ' (animated)' : ''}`,
     );
   return [
-    `panel.html is ${formatBytes(panelBytes)}, over Orca's ${formatBytes(PANEL_ENTRY_MAX_BYTES)} limit.`,
+    `"${title}" is ${formatBytes(panelBytes)}, over Orca's ${formatBytes(PANEL_ENTRY_MAX_BYTES)} limit for a panel.`,
     'Largest images:',
     ...largest,
     'Try a smaller --max-size or --quality, or remove some images.',
@@ -78,17 +90,17 @@ async function assertFolder(folder: string): Promise<void> {
   if (!info?.isDirectory()) throw new BuildError(`Image folder not found: ${folder}`);
 }
 
-export async function buildPlugin(
-  options: BuildOptions,
-  logger: Logger = console,
-): Promise<BuildResult> {
-  await assertFolder(options.input);
-  const files = await findImages(options.input, options.recursive);
+async function buildGallery(
+  gallery: GalleryOptions,
+  logger: Logger,
+): Promise<{ html: string; images: ImageReport[]; skipped: GalleryResult['skipped'] }> {
+  await assertFolder(gallery.input);
+  const files = await findImages(gallery.input, gallery.recursive);
 
-  const skipped: BuildResult['skipped'] = [];
+  const skipped: GalleryResult['skipped'] = [];
   const encoded = await mapConcurrent(files, ENCODE_CONCURRENCY, async (file) => {
     try {
-      return { file, image: await encodeImage(file, options) };
+      return { file, image: await encodeImage(file, gallery) };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       skipped.push({ file, reason });
@@ -103,8 +115,8 @@ export async function buildPlugin(
   if (ok.length === 0) {
     throw new BuildError(
       files.length === 0
-        ? `No supported images in ${options.input}${options.recursive ? '' : ' (use --recursive to include subfolders)'}`
-        : `None of the ${String(files.length)} images in ${options.input} could be read`,
+        ? `No supported images in ${gallery.input}${gallery.recursive ? '' : ' (use --recursive to include subfolders)'}`
+        : `None of the ${String(files.length)} images in ${gallery.input} could be read`,
     );
   }
 
@@ -122,21 +134,62 @@ export async function buildPlugin(
 
   const html = await renderPanelHtml({
     images,
-    intervalMs: options.intervalSeconds * 1000,
-    fit: options.fit,
+    intervalMs: gallery.intervalSeconds * 1000,
+    fit: gallery.fit,
+    blur: gallery.blur,
+    effect: gallery.effect,
+    caption: gallery.caption,
   });
   const panelBytes = Buffer.byteLength(html);
-  if (panelBytes > PANEL_ENTRY_MAX_BYTES)
-    throw new BuildError(oversizeMessage(panelBytes, reports));
+  if (panelBytes > PANEL_ENTRY_MAX_BYTES) {
+    throw new BuildError(oversizeMessage(gallery.title, panelBytes, reports));
+  }
+  return { html, images: reports, skipped };
+}
+
+/** Removes panel files an earlier build wrote for galleries that no longer exist. */
+async function removeStalePanels(outDir: string, keep: ReadonlySet<string>): Promise<void> {
+  const files = await readdir(outDir);
+  await Promise.all(
+    files
+      .filter((file) => isGeneratedPanelFile(file) && !keep.has(file))
+      .map((file) => rm(join(outDir, file))),
+  );
+}
+
+export async function buildPlugin(
+  options: BuildOptions,
+  logger: Logger = console,
+): Promise<BuildResult> {
+  const entries = panelEntries(options.galleries.map((gallery) => gallery.title));
+  const built = [];
+  for (const gallery of options.galleries) built.push(await buildGallery(gallery, logger));
+
+  const totalBytes = built.reduce((sum, { html }) => sum + Buffer.byteLength(html), 0);
+  if (totalBytes > PLUGIN_MAX_BYTES) {
+    throw new BuildError(
+      `The galleries add up to ${formatBytes(totalBytes)}, over Orca's ${formatBytes(PLUGIN_MAX_BYTES)} limit for a plugin.`,
+    );
+  }
 
   await mkdir(options.outDir, { recursive: true });
   await Promise.all([
-    writeFile(join(options.outDir, PANEL_ENTRY), html),
+    ...built.map(({ html }, i) => writeFile(join(options.outDir, entries[i]?.entry ?? ''), html)),
     writeFile(
       join(options.outDir, MANIFEST_FILE),
-      `${JSON.stringify(createManifest(options.title), null, 2)}\n`,
+      `${JSON.stringify(createManifest(options.name, entries), null, 2)}\n`,
     ),
   ]);
+  await removeStalePanels(options.outDir, new Set(entries.map(({ entry }) => entry)));
 
-  return { outDir: options.outDir, panelBytes, images: reports, skipped };
+  return {
+    outDir: options.outDir,
+    galleries: built.map(({ html, images, skipped }, i) => ({
+      title: entries[i]?.title ?? '',
+      entry: entries[i]?.entry ?? '',
+      panelBytes: Buffer.byteLength(html),
+      images,
+      skipped,
+    })),
+  };
 }

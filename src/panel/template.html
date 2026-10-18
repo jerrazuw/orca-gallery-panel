@@ -10,8 +10,15 @@
   </head>
   <body>
     <main class="stage">
-      <img id="layer-a" class="layer" alt="" />
-      <img id="layer-b" class="layer" alt="" />
+      <div id="layer-a" class="layer">
+        <img class="backdrop" alt="" aria-hidden="true" />
+        <img class="photo" alt="" />
+      </div>
+      <div id="layer-b" class="layer">
+        <img class="backdrop" alt="" aria-hidden="true" />
+        <img class="photo" alt="" />
+      </div>
+      <p id="caption" class="caption"></p>
       <p id="message" class="message-text" role="status"></p>
     </main>
 
@@ -43,6 +50,20 @@
           <path d="M12 7v5l3 2" />
         </svg>
       </button>
+      <button
+        type="button"
+        class="control"
+        data-action="settings"
+        aria-expanded="false"
+        aria-controls="settings-panel"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />
+          <circle cx="15" cy="6" r="2" />
+          <circle cx="9" cy="12" r="2" />
+          <circle cx="17" cy="18" r="2" />
+        </svg>
+      </button>
       <button type="button" class="control" data-action="fit">
         <svg class="icon-fill" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />
@@ -51,8 +72,8 @@
           <path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" />
         </svg>
       </button>
-      <div id="interval-editor" class="interval-editor" hidden>
-        <label id="interval-label" for="interval-input"></label>
+      <div id="interval-editor" class="popover" hidden>
+        <label id="interval-label" class="popover-title" for="interval-input"></label>
         <div class="interval-row">
           <input
             id="interval-input"
@@ -66,6 +87,22 @@
           <button type="button" id="interval-apply" class="apply"></button>
         </div>
         <p id="interval-hint" class="hint"></p>
+      </div>
+      <div id="settings-panel" class="popover" role="group" aria-labelledby="settings-title" hidden>
+        <p id="settings-title" class="popover-title"></p>
+        <label class="switch">
+          <input type="checkbox" role="switch" data-setting="blur" />
+          <span></span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" role="switch" data-setting="kenburns" />
+          <span></span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" role="switch" data-setting="caption" />
+          <span></span>
+        </label>
+        <p id="settings-note" class="hint"></p>
       </div>
     </div>
 

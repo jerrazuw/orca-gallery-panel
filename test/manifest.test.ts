@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import pkg from '../package.json' with { type: 'json' };
-import { createManifest, PANEL_ENTRY } from '../src/manifest.ts';
+import {
+  createManifest,
+  isGeneratedPanelFile,
+  PANEL_ENTRY,
+  PANEL_ID,
+  panelEntries,
+} from '../src/manifest.ts';
 
 const ID_FORMAT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const PANEL_ICONS = [
@@ -35,7 +41,7 @@ const PANEL_ICONS = [
 ];
 
 describe('createManifest', () => {
-  const manifest = createManifest('My gallery');
+  const manifest = createManifest('My gallery', panelEntries(['My gallery']));
 
   it('follows Orca naming rules', () => {
     assert.match(manifest.id, ID_FORMAT);
@@ -63,5 +69,36 @@ describe('createManifest', () => {
 
   it('asks for no capabilities', () => {
     assert.deepEqual(manifest.capabilities, []);
+  });
+});
+
+describe('panelEntries', () => {
+  it('keeps the original id and file for a single gallery', () => {
+    assert.deepEqual(panelEntries(['Anything']), [
+      { id: PANEL_ID, title: 'Anything', entry: PANEL_ENTRY },
+    ]);
+  });
+
+  it('derives a valid, unique id per gallery from its title', () => {
+    const entries = panelEntries(['Wallpapers', 'Fotos de Viña!', 'Wallpapers', '✨✨']);
+    assert.deepEqual(
+      entries.map((entry) => entry.id),
+      ['wallpapers', 'fotos-de-vina', 'wallpapers-2', 'gallery-4'],
+    );
+    for (const entry of entries) {
+      assert.match(entry.id, ID_FORMAT);
+      assert.equal(entry.entry, `panel-${entry.id}.html`);
+      assert.ok(isGeneratedPanelFile(entry.entry));
+    }
+  });
+});
+
+describe('isGeneratedPanelFile', () => {
+  it('only matches files this tool writes', () => {
+    assert.ok(isGeneratedPanelFile('panel.html'));
+    assert.ok(isGeneratedPanelFile('panel-wallpapers-2.html'));
+    assert.ok(!isGeneratedPanelFile('preview.html'));
+    assert.ok(!isGeneratedPanelFile('panel-.html'));
+    assert.ok(!isGeneratedPanelFile('my-panel.html'));
   });
 });

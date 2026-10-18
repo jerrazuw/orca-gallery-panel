@@ -6,6 +6,9 @@ const valid = {
   images: [{ src: 'data:image/webp;base64,AAAA', label: 'cat' }],
   intervalMs: 1000,
   fit: 'contain',
+  blur: true,
+  effect: 'none',
+  caption: false,
 };
 
 describe('parseConfig', () => {
@@ -29,6 +32,9 @@ describe('parseConfig', () => {
     assert.throws(() => parseConfig({ ...valid, intervalMs: -1 }), /intervalMs/);
     assert.throws(() => parseConfig({ ...valid, intervalMs: Number.NaN }), /intervalMs/);
     assert.throws(() => parseConfig({ ...valid, fit: 'stretch' }), /fit/);
+    assert.throws(() => parseConfig({ ...valid, effect: 'spin' }), /effect/);
+    assert.throws(() => parseConfig({ ...valid, blur: 'yes' }), /blur/);
+    assert.throws(() => parseConfig({ ...valid, caption: 1 }), /caption/);
   });
 
   it('rejects anything that is not an object', () => {
