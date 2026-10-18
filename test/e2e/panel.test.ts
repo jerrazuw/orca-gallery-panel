@@ -6,6 +6,13 @@ import { renderPanelHtml } from '../../src/html.ts';
 import type { GalleryConfig, GalleryImage } from '../../src/panel/config.ts';
 import { orcaShell } from '../../src/preview.ts';
 
+const BASE: Omit<GalleryConfig, 'images'> = {
+  intervalMs: 0,
+  fit: 'contain',
+  blur: true,
+  effect: 'none',
+  caption: false,
+};
 const BROKEN: GalleryImage = { src: 'data:image/webp;base64,AAAA', label: 'broken' };
 
 async function solid(color: string, label: string): Promise<GalleryImage> {
@@ -51,7 +58,7 @@ describe('panel in a sandboxed Orca-like frame', () => {
     config: Partial<GalleryConfig>,
     locale = 'en-US',
   ): Promise<{ page: Page; frame: Frame; errors: string[] }> {
-    const html = await renderPanelHtml({ images, intervalMs: 0, fit: 'contain', ...config });
+    const html = await renderPanelHtml({ ...BASE, images, ...config });
     const page = await browser.newPage({ locale, viewport: { width: 360, height: 560 } });
     const errors: string[] = [];
     page.on('console', (message) => {
@@ -71,7 +78,7 @@ describe('panel in a sandboxed Orca-like frame', () => {
     return { page, frame, errors };
   }
 
-  const visibleLabel = (frame: Frame) => frame.getAttribute('.layer.visible', 'alt');
+  const visibleLabel = (frame: Frame) => frame.getAttribute('.layer.visible .photo', 'alt');
   const counter = (frame: Frame) => frame.textContent('#counter');
 
   it('shows an image without errors or CSP violations', async () => {
@@ -154,7 +161,7 @@ describe('panel in a sandboxed Orca-like frame', () => {
   });
 
   it('explains when nothing can be shown', async () => {
-    const html = await renderPanelHtml({ images: [BROKEN], intervalMs: 0, fit: 'contain' });
+    const html = await renderPanelHtml({ ...BASE, images: [BROKEN] });
     assert.ok(html);
     const page = await browser.newPage();
     await page.setContent(orcaShell(html, 'light'));
@@ -164,9 +171,7 @@ describe('panel in a sandboxed Orca-like frame', () => {
     );
     assert.equal(await page.textContent('#message'), 'None of the images could be displayed.');
 
-    await page.setContent(
-      orcaShell(await renderPanelHtml({ images: [], intervalMs: 0, fit: 'contain' }), 'light'),
-    );
+    await page.setContent(orcaShell(await renderPanelHtml({ ...BASE, images: [] }), 'light'));
     assert.match((await page.textContent('#message')) ?? '', /No images yet/);
     await page.close();
   });
@@ -232,6 +237,62 @@ describe('panel in a sandboxed Orca-like frame', () => {
     await frame.click('[data-action="interval"]');
     await frame.click('.stage', { position: { x: 20, y: 20 }, force: true });
     assert.equal(await frame.isVisible('#interval-editor'), false);
+    await page.close();
+  });
+
+  it('changes display settings from the settings menu', async () => {
+    const { page, frame } = await open({ caption: false, blur: true, effect: 'none' });
+    const settings = '[data-action="settings"]';
+    const body = (name: string) =>
+      frame.evaluate((cls) => document.body.classList.contains(cls), name);
+
+    await frame.click(settings);
+    assert.equal(await frame.getAttribute(settings, 'aria-expanded'), 'true');
+    assert.equal(await frame.isChecked('[data-setting="blur"]'), true);
+    assert.equal(await frame.isChecked('[data-setting="caption"]'), false);
+
+    await frame.click('label:has([data-setting="caption"])');
+    assert.equal(await body('show-caption'), true);
+    assert.equal(await frame.isVisible('#caption'), true);
+    assert.equal(await frame.textContent('#caption'), await visibleLabel(frame));
+
+    await frame.click('label:has([data-setting="blur"])');
+    assert.equal(await body('blur'), false);
+
+    await frame.click('label:has([data-setting="kenburns"])');
+    assert.equal(await body('kenburns'), true);
+    await page.close();
+  });
+
+  it('shows the blurred background only when the image does not fill the panel', async () => {
+    const { page, frame } = await open({ blur: true, fit: 'contain' });
+    const backdrop = '.layer.visible .backdrop';
+    assert.equal(await frame.isVisible(backdrop), true);
+    await frame.click('[data-action="fit"]');
+    assert.equal(await frame.isVisible(backdrop), false);
+    await page.close();
+  });
+
+  it('zooms slowly with the Ken Burns effect', async () => {
+    const { page, frame } = await open({ effect: 'kenburns', intervalMs: 10_000 });
+    const animation = await frame.evaluate(() => {
+      const photo = document.querySelector('.layer.visible .photo');
+      if (!photo) return null;
+      const style = getComputedStyle(photo);
+      return { name: style.animationName, duration: style.animationDuration };
+    });
+    assert.deepEqual(animation, { name: 'kenburns', duration: '10.6s' });
+    await page.close();
+  });
+
+  it('keeps only one menu open at a time', async () => {
+    const { page, frame } = await open({});
+    await frame.click('[data-action="interval"]');
+    await frame.click('[data-action="settings"]');
+    assert.equal(await frame.isVisible('#interval-editor'), false);
+    assert.equal(await frame.isVisible('#settings-panel'), true);
+    await frame.press('body', 'Escape');
+    assert.equal(await frame.isVisible('#settings-panel'), false);
     await page.close();
   });
 

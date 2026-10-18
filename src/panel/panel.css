@@ -11,6 +11,7 @@
   --gallery-danger: var(--destructive, #f87171);
   --gallery-radius: var(--radius, 0.625rem);
   --gallery-fade: 600ms;
+  --gallery-kenburns: 30s;
 }
 
 *,
@@ -31,18 +32,18 @@ body {
     sans-serif;
 }
 
+/* Stage and images */
+
 .stage {
   position: absolute;
   inset: 0;
+  overflow: hidden;
 }
 
 .layer {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  cursor: pointer;
+  overflow: hidden;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--gallery-fade) ease;
@@ -53,12 +54,78 @@ body {
   pointer-events: auto;
 }
 
-body[data-fit='cover'] .layer {
+.photo,
+.backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.photo {
+  object-fit: contain;
+  cursor: pointer;
+}
+
+body[data-fit='cover'] .photo {
   object-fit: cover;
 }
 
-body.single .layer {
+body.single .photo {
   cursor: default;
+}
+
+.backdrop {
+  display: none;
+  object-fit: cover;
+  filter: blur(28px) brightness(0.7);
+  transform: scale(1.15);
+}
+
+body.blur[data-fit='contain'] .backdrop {
+  display: block;
+}
+
+body.kenburns .layer.animate .photo {
+  animation: kenburns var(--gallery-kenburns) ease-in-out both;
+}
+
+body.kenburns .layer.animate.alternate .photo {
+  animation-direction: reverse;
+}
+
+body.paused .photo {
+  animation-play-state: paused !important;
+}
+
+@keyframes kenburns {
+  from {
+    transform: scale(1) translate(0, 0);
+  }
+
+  to {
+    transform: scale(1.12) translate(-2%, -1.5%);
+  }
+}
+
+.caption {
+  display: none;
+  position: absolute;
+  inset: 0 0 auto;
+  margin: 0;
+  padding: 10px 12px 24px;
+  overflow: hidden;
+  color: #fff;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+  background: linear-gradient(rgb(0 0 0 / 0.55), transparent);
+  pointer-events: none;
+}
+
+body.show-caption .caption:not(:empty) {
+  display: block;
 }
 
 .message-text {
@@ -77,9 +144,12 @@ body.message .message-text {
 }
 
 body.message .controls,
-body.message .layer {
+body.message .layer,
+body.message .caption {
   display: none;
 }
+
+/* Toolbar */
 
 .controls {
   position: absolute;
@@ -122,9 +192,8 @@ body.paused .controls {
   background: color-mix(in srgb, var(--gallery-fg) 12%, transparent);
 }
 
-.control:focus-visible {
-  outline: 2px solid var(--gallery-ring);
-  outline-offset: 1px;
+.control[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--gallery-fg) 16%, transparent);
 }
 
 .control svg {
@@ -169,15 +238,19 @@ body.single .counter {
   display: none;
 }
 
-.control[aria-expanded='true'] {
-  background: color-mix(in srgb, var(--gallery-fg) 16%, transparent);
+@media (max-width: 280px) {
+  .counter {
+    display: none;
+  }
 }
 
-.interval-editor {
+/* Popovers: interval editor and settings */
+
+.popover {
   position: absolute;
   right: 0;
   bottom: calc(100% + 8px);
-  width: 200px;
+  width: 210px;
   padding: 10px;
   border: 1px solid var(--gallery-border);
   border-radius: var(--gallery-radius);
@@ -185,13 +258,13 @@ body.single .counter {
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
 }
 
-.interval-editor[hidden] {
+.popover[hidden] {
   display: none;
 }
 
-.interval-editor label {
+.popover-title {
   display: block;
-  margin-bottom: 6px;
+  margin: 0 0 6px;
   font-weight: 600;
 }
 
@@ -212,12 +285,6 @@ body.single .counter {
   font-variant-numeric: tabular-nums;
 }
 
-.interval-row input:focus-visible,
-.apply:focus-visible {
-  outline: 2px solid var(--gallery-ring);
-  outline-offset: 1px;
-}
-
 .interval-row input[aria-invalid='true'] {
   border-color: var(--gallery-danger);
 }
@@ -233,6 +300,50 @@ body.single .counter {
   cursor: pointer;
 }
 
+.switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+  cursor: pointer;
+}
+
+.switch input {
+  appearance: none;
+  position: relative;
+  flex: none;
+  order: 1;
+  width: 28px;
+  height: 16px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--gallery-input);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.switch input::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gallery-fg);
+  transition: transform 150ms ease;
+}
+
+.switch input:checked {
+  background: var(--gallery-primary);
+}
+
+.switch input:checked::after {
+  background: var(--gallery-primary-fg);
+  transform: translateX(12px);
+}
+
 .hint {
   margin: 6px 0 0;
   color: var(--gallery-muted);
@@ -242,12 +353,28 @@ body.single .counter {
   color: var(--gallery-danger);
 }
 
+/* Focus and motion */
+
+.control:focus-visible,
+.apply:focus-visible,
+.interval-row input:focus-visible,
+.switch input:focus-visible {
+  outline: 2px solid var(--gallery-ring);
+  outline-offset: 1px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --gallery-fade: 0ms;
   }
 
-  .controls {
+  .controls,
+  .switch input,
+  .switch input::after {
     transition: none;
+  }
+
+  body.kenburns .layer.animate .photo {
+    animation: none;
   }
 }

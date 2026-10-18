@@ -1,28 +1,24 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Orca Gallery Panel settings",
-  "description": "Saved options for `npm run build`. Command-line options override these.",
+  "description": "Saved options for the gallery build. Command-line options override these.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "$schema": { "type": "string" },
+    "$schema": {
+      "type": "string"
+    },
     "folder": {
       "type": "string",
       "minLength": 1,
       "description": "Folder with your images. Relative paths start from this file; ~ is your home folder.",
       "default": "images"
     },
-    "out": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Output folder for the plugin.",
-      "default": "dist"
-    },
     "title": {
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "description": "Panel title shown in Orca.",
+      "description": "Panel title shown in Orca. With \"galleries\", it names the plugin instead.",
       "default": "Gallery"
     },
     "interval": {
@@ -51,10 +47,81 @@
       "description": "Initial mode: contain shows the whole image, cover fills the panel.",
       "default": "contain"
     },
+    "blur": {
+      "type": "boolean",
+      "description": "Show a blurred copy of the image behind it when it doesn't fill the panel.",
+      "default": true
+    },
+    "effect": {
+      "enum": ["none", "kenburns"],
+      "description": "none, or kenburns for a slow zoom while each image is shown.",
+      "default": "none"
+    },
+    "caption": {
+      "type": "boolean",
+      "description": "Show the image's file name at the top of the panel.",
+      "default": false
+    },
     "recursive": {
       "type": "boolean",
       "description": "Include images in subfolders.",
       "default": false
+    },
+    "out": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Output folder for the plugin.",
+      "default": "dist"
+    },
+    "galleries": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Several galleries, each in its own panel. Settings at the top level apply to all of them unless a gallery sets its own.",
+      "items": {
+        "$ref": "#/$defs/gallery"
+      }
+    }
+  },
+  "$defs": {
+    "gallery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["folder"],
+      "properties": {
+        "folder": {
+          "$ref": "#/properties/folder"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Panel title. Defaults to the folder's name."
+        },
+        "interval": {
+          "$ref": "#/properties/interval"
+        },
+        "maxSize": {
+          "$ref": "#/properties/maxSize"
+        },
+        "quality": {
+          "$ref": "#/properties/quality"
+        },
+        "fit": {
+          "$ref": "#/properties/fit"
+        },
+        "blur": {
+          "$ref": "#/properties/blur"
+        },
+        "effect": {
+          "$ref": "#/properties/effect"
+        },
+        "caption": {
+          "$ref": "#/properties/caption"
+        },
+        "recursive": {
+          "$ref": "#/properties/recursive"
+        }
+      }
     }
   }
 }
