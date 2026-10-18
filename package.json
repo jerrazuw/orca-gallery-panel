@@ -2,12 +2,17 @@
   "name": "orca-gallery-panel",
   "version": "1.2.0",
   "private": true,
-  "description": "An Orca side panel that shows a rotating gallery of your own images.",
+  "description": "Background images for the Orca agent IDE: a side panel with a rotating gallery of your own pictures.",
   "keywords": [
     "orca",
     "orca-plugin",
-    "gallery",
-    "slideshow"
+    "orca-ide",
+    "agent-ide",
+    "wallpaper",
+    "background-image",
+    "image-gallery",
+    "slideshow",
+    "side-panel"
   ],
   "license": "MIT",
   "author": {
