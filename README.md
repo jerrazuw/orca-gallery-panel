@@ -11,7 +11,7 @@ You point it at a folder, it packs the images into an Orca panel plugin, and the
 through them with a slideshow, a blurred background, an optional Ken Burns zoom and controls you
 can change without leaving Orca.
 
-![The panel in Orca's dark and light themes](docs/screenshot.png)
+![The gallery panel in Orca's dark and light themes, with the display settings menu open](docs/screenshot.png)
 
 ## Features
 
