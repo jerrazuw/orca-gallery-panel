@@ -1,0 +1,51 @@
+{
+  "name": "orca-gallery-panel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An Orca side panel that shows a rotating gallery of your own images.",
+  "keywords": [
+    "orca",
+    "orca-plugin",
+    "gallery",
+    "slideshow"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Jaime Errázuriz Werth",
+    "url": "https://github.com/jerrazuw"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jerrazuw/orca-gallery-panel.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "build": "node src/cli.ts",
+    "preview": "node src/preview.ts",
+    "examples:generate": "node scripts/generate-examples.ts",
+    "typecheck": "tsc",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "node --test \"test/*.test.ts\"",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+    "test:e2e": "node --test --test-concurrency=1 \"test/e2e/**/*.test.ts\""
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "playwright": "^1.64.1",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2"
+  }
+}
