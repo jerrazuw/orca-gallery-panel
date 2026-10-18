@@ -1,0 +1,174 @@
+:root {
+  --gallery-bg: var(--background, #0a0a0a);
+  --gallery-fg: var(--foreground, #fafafa);
+  --gallery-muted: var(--muted-foreground, #a1a1a1);
+  --gallery-surface: var(--secondary, #262626);
+  --gallery-border: var(--border, rgb(255 255 255 / 0.1));
+  --gallery-ring: var(--ring, #a1a1a1);
+  --gallery-radius: var(--radius, 0.625rem);
+  --gallery-fade: 600ms;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--gallery-bg);
+  color: var(--gallery-fg);
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--gallery-fade) ease;
+}
+
+.layer.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body[data-fit='cover'] .layer {
+  object-fit: cover;
+}
+
+body.single .layer {
+  cursor: default;
+}
+
+.message-text {
+  display: none;
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 24px;
+  place-content: center;
+  text-align: center;
+  color: var(--gallery-muted);
+}
+
+body.message .message-text {
+  display: grid;
+}
+
+body.message .controls,
+body.message .layer {
+  display: none;
+}
+
+.controls {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  transform: translateX(-50%);
+  border: 1px solid var(--gallery-border);
+  border-radius: var(--gallery-radius);
+  background: color-mix(in srgb, var(--gallery-surface) 85%, transparent);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+body:hover .controls,
+.controls:focus-within,
+body.paused .controls {
+  opacity: 1;
+}
+
+.control {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--gallery-radius) - 4px);
+  background: transparent;
+  color: var(--gallery-fg);
+  cursor: pointer;
+}
+
+.control:hover {
+  background: color-mix(in srgb, var(--gallery-fg) 12%, transparent);
+}
+
+.control:focus-visible {
+  outline: 2px solid var(--gallery-ring);
+  outline-offset: 1px;
+}
+
+.control svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-play {
+  fill: currentColor;
+}
+
+.icon-play,
+body.paused .icon-pause,
+.icon-fit,
+body[data-fit='cover'] .icon-fill {
+  display: none;
+}
+
+body.paused .icon-play,
+body[data-fit='cover'] .icon-fit {
+  display: block;
+}
+
+.counter {
+  min-width: 44px;
+  padding: 0 6px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--gallery-muted);
+}
+
+body.single [data-action='previous'],
+body.single [data-action='next'],
+body.single [data-action='toggle'],
+body.single .counter {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --gallery-fade: 0ms;
+  }
+
+  .controls {
+    transition: none;
+  }
+}
