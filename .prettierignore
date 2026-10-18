@@ -1,3 +1,4 @@
 dist/
 images/
 package-lock.json
+lib/
