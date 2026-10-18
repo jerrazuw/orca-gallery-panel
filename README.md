@@ -3,8 +3,13 @@
 [![CI](https://github.com/jerrazuw/orca-gallery-panel/actions/workflows/ci.yml/badge.svg)](https://github.com/jerrazuw/orca-gallery-panel/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A side panel for the [Orca](https://github.com/stablyai/orca) editor that shows a rotating
-gallery of your own images while you work: wallpapers, photos, art, mood boards.
+**Background images for [Orca](https://orca.dev), the agent IDE.** Orca has no setting for a
+wallpaper or background image, so this plugin adds a side panel that shows a rotating gallery of
+your own pictures while your agents work: wallpapers, photos, art, mood boards.
+
+You point it at a folder, it packs the images into an Orca panel plugin, and the panel shuffles
+through them with a slideshow, a blurred background, an optional Ken Burns zoom and controls you
+can change without leaving Orca.
 
 ![The panel in Orca's dark and light themes](docs/screenshot.png)
 
@@ -176,8 +181,8 @@ project to check that the command works.
 
 ## Why it isn't in the Orca marketplace
 
-Marketplace plugins are installed from a git repository as they are, but this panel only works
-once it has been built with your images. A marketplace entry could only ship the sample gallery.
+Plugins in the [Orca marketplace](https://github.com/stablyai/orca-plugins) are installed from a
+git repository as they are, but this panel only works once it has been built with your images. A marketplace entry could only ship the sample gallery.
 
 ## Contributing
 
