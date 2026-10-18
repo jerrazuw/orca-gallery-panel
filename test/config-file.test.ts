@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { after, before, describe, it } from 'node:test';
 import { loadConfigFile } from '../src/config-file.ts';
-import { DEFAULTS, SETTING_KEYS, UsageError } from '../src/options.ts';
+import { DEFAULTS, GALLERY_KEYS, SETTING_KEYS, UsageError } from '../src/options.ts';
 
 describe('loadConfigFile', () => {
   let dir = '';
@@ -67,7 +67,23 @@ describe('loadConfigFile', () => {
   it('names a typo instead of ignoring it', async () => {
     await rejects(
       await write('typo.json', { intervall: 60 }),
-      /Unknown setting "intervall" in typo\.json\. Valid settings: folder, out, title, interval/,
+      /Unknown setting "intervall" in typo\.json\. Valid settings: folder, title, interval/,
+    );
+  });
+
+  it('validates every gallery and points at the one that is wrong', async () => {
+    const file = await write('galleries.json', {
+      galleries: [{ folder: 'a' }, { folder: 'b', intervall: 5 }],
+    });
+    await rejects(file, /Unknown setting "galleries\[1\]\.intervall"/);
+    await rejects(
+      await write('no-folder.json', { galleries: [{ title: 'x' }] }),
+      /"galleries\[0\]\.folder" in no-folder\.json is required/,
+    );
+    await rejects(await write('empty.json', { galleries: [] }), /must be a non-empty list/);
+    await rejects(
+      await write('bad-effect.json', { galleries: [{ folder: 'a', effect: 'spin' }] }),
+      /"galleries\[0\]\.effect" in bad-effect\.json must be one of none, kenburns/,
     );
   });
 
@@ -85,14 +101,20 @@ describe('loadConfigFile', () => {
 });
 
 describe('gallery.config.schema.json', () => {
+  interface Schema {
+    properties: Record<string, { default?: unknown }>;
+    $defs: { gallery: { properties: Record<string, unknown> } };
+  }
+
   it('documents exactly the settings the CLI accepts, with the same defaults', async () => {
     const schema = JSON.parse(
       await readFile(new URL('../gallery.config.schema.json', import.meta.url), 'utf8'),
-    ) as { properties: Record<string, { default?: unknown }> };
+    ) as Schema;
 
     const documented = Object.keys(schema.properties).filter((key) => key !== '$schema');
     assert.deepEqual(documented, [...SETTING_KEYS]);
-    for (const key of SETTING_KEYS) {
+    assert.deepEqual(Object.keys(schema.$defs.gallery.properties), [...GALLERY_KEYS]);
+    for (const key of Object.keys(DEFAULTS) as (keyof typeof DEFAULTS)[]) {
       assert.equal(schema.properties[key]?.default, DEFAULTS[key], `default of ${key}`);
     }
   });

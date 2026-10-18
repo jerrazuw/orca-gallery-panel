@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { buildPlugin, BuildError, formatBytes, oversizeMessage } from '../src/build.ts';
 import { serializeConfig } from '../src/html.ts';
-import { parseCommand, resolveOptions, type BuildOptions } from '../src/options.ts';
+import { parseCommand, resolveOptions, type BuildOptions, type Settings } from '../src/options.ts';
 import { parseConfig } from '../src/panel/config.ts';
 
 const EXAMPLES = fileURLToPath(new URL('../examples/images/', import.meta.url));
@@ -16,6 +16,11 @@ function options(input: string, outDir: string, extra: string[] = []): BuildOpti
   const command = parseCommand([input, '--out', outDir, ...extra]);
   assert.equal(command.kind, 'build');
   return resolveOptions([{ settings: command.settings, baseDir: process.cwd() }], process.cwd());
+}
+
+function only<T>(items: readonly T[]): T {
+  assert.equal(items.length, 1);
+  return items[0] as T;
 }
 
 function embeddedConfig(html: string): unknown {
@@ -40,26 +45,40 @@ describe('buildPlugin', () => {
   it('builds a self-contained panel and manifest from the examples', async () => {
     const outDir = join(work, 'out');
     const result = await buildPlugin(
-      options(EXAMPLES, outDir, ['--title', 'Demo', '-i', '30', '--fit', 'cover']),
+      options(EXAMPLES, outDir, [
+        '--title',
+        'Demo',
+        '-i',
+        '30',
+        '--fit',
+        'cover',
+        '--effect',
+        'kenburns',
+        '--caption',
+      ]),
       silent,
     );
+    const gallery = only(result.galleries);
 
-    assert.equal(result.images.length, 6);
-    assert.deepEqual(result.skipped, []);
+    assert.equal(gallery.images.length, 6);
+    assert.deepEqual(gallery.skipped, []);
     assert.ok(
-      result.images.some((image) => image.animated),
+      gallery.images.some((image) => image.animated),
       'the GIF stays animated',
     );
-    assert.ok(result.images.every((image) => Math.max(image.width, image.height) <= 800));
+    assert.ok(gallery.images.every((image) => Math.max(image.width, image.height) <= 800));
 
     const html = await readFile(join(outDir, 'panel.html'), 'utf8');
-    assert.equal(Buffer.byteLength(html), result.panelBytes);
+    assert.equal(Buffer.byteLength(html), gallery.panelBytes);
     assert.doesNotMatch(html, /\b(src|href)="(?!data:)[^"]+"/, 'no external resources');
     assert.doesNotMatch(html, /\/\*__(STYLE|SCRIPT|CONFIG)__\*\//, 'every placeholder is filled');
 
     const config = parseConfig(embeddedConfig(html));
     assert.equal(config.intervalMs, 30_000);
     assert.equal(config.fit, 'cover');
+    assert.equal(config.effect, 'kenburns');
+    assert.equal(config.caption, true);
+    assert.equal(config.blur, true);
     assert.deepEqual(
       config.images.map((image) => image.label),
       ['01-dusk', '02-ember', '03-lagoon', '04-bloom', '05-glacier', '06-orbit'],
@@ -70,6 +89,48 @@ describe('buildPlugin', () => {
       name: string;
     };
     assert.equal(manifest.name, 'Demo');
+  });
+
+  it('builds one panel per gallery and removes panels of galleries that are gone', async () => {
+    const outDir = join(work, 'multi');
+    const settings: Settings = {
+      title: 'Collections',
+      out: outDir,
+      galleries: [
+        { folder: EXAMPLES, title: 'Abstract art' },
+        { folder: EXAMPLES, title: 'Abstract art', interval: 5 },
+      ],
+    };
+    const first = await buildPlugin(resolveOptions([{ settings, baseDir: work }], work), silent);
+    assert.deepEqual(
+      first.galleries.map((gallery) => gallery.entry),
+      ['panel-abstract-art.html', 'panel-abstract-art-2.html'],
+    );
+
+    const manifest = JSON.parse(await readFile(join(outDir, 'orca-plugin.json'), 'utf8')) as {
+      name: string;
+      contributes: { panels: { id: string; title: string }[] };
+    };
+    assert.equal(manifest.name, 'Collections');
+    assert.deepEqual(
+      manifest.contributes.panels.map((panel) => panel.id),
+      ['abstract-art', 'abstract-art-2'],
+    );
+    const second = parseConfig(
+      embeddedConfig(await readFile(join(outDir, 'panel-abstract-art-2.html'), 'utf8')),
+    );
+    assert.equal(second.intervalMs, 5000);
+
+    await writeFile(join(outDir, 'notes.html'), 'not ours');
+    await buildPlugin(
+      resolveOptions([{ settings: { folder: EXAMPLES, out: outDir }, baseDir: work }], work),
+      silent,
+    );
+    assert.deepEqual((await readdir(outDir)).sort(), [
+      'notes.html',
+      'orca-plugin.json',
+      'panel.html',
+    ]);
   });
 
   it('skips files it cannot decode and keeps the rest', async () => {
@@ -83,8 +144,9 @@ describe('buildPlugin', () => {
       warn: (m) => warnings.push(m),
     });
 
-    assert.equal(result.images.length, 1);
-    assert.equal(result.skipped.length, 1);
+    const gallery = only(result.galleries);
+    assert.equal(gallery.images.length, 1);
+    assert.equal(gallery.skipped.length, 1);
     assert.match(warnings[0] ?? '', /Skipping broken\.png/);
   });
 
@@ -110,6 +172,9 @@ describe('serializeConfig', () => {
       images: [{ src: 'data:image/png;base64,AA', label: '</script><script>alert(1)</script>' }],
       intervalMs: 0,
       fit: 'contain',
+      blur: true,
+      effect: 'none',
+      caption: false,
     });
     assert.doesNotMatch(json, /</);
     assert.equal(
@@ -121,11 +186,11 @@ describe('serializeConfig', () => {
 
 describe('oversizeMessage', () => {
   it('names the largest images and how to shrink them', () => {
-    const message = oversizeMessage(11 * 1024 * 1024, [
+    const message = oversizeMessage('Wallpapers', 11 * 1024 * 1024, [
       { file: '/a/small.jpg', bytes: 1_000, width: 1, height: 1, animated: false },
       { file: '/a/huge.gif', bytes: 9_000_000, width: 1, height: 1, animated: true },
     ]);
-    assert.match(message, /11\.0 MB, over Orca's 10\.0 MB limit/);
+    assert.match(message, /"Wallpapers" is 11\.0 MB, over Orca's 10\.0 MB limit for a panel/);
     assert.match(message, /huge\.gif \(animated\)\n.*small\.jpg/);
     assert.match(message, /--max-size or --quality/);
   });
