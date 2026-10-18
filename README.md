@@ -12,7 +12,11 @@ gallery of your own images while you work: wallpapers, photos, art, mood boards.
 
 - **Slideshow**: shuffles your images and changes them on an interval you choose. Every image
   shows once before any repeats, and the same one never appears twice in a row.
-- **Controls** on hover: previous, pause/resume, next, a position counter, and fit/fill.
+- **Controls** on hover: previous, pause/resume, next, a position counter, interval and
+  fit/fill.
+- **Change the interval from the panel**: click the clock and type the seconds between images
+  (`0` stops the automatic change). It lasts until Orca reloads the panel: Orca gives panels no
+  storage, so the default comes from the build settings.
 - **Keyboard**: `←` / `→` to navigate, `Space` to pause, `F` to switch between fit and fill.
 - **Matches Orca's theme**, light or dark, using the design tokens Orca gives every panel.
 - **Any common format**: PNG, JPEG, GIF, WebP, AVIF and TIFF. Animated GIF and WebP stay
@@ -37,28 +41,52 @@ The plugin is written to `dist/`. In Orca, go to **Settings → Plugins → Deve
 
 To try it without your own pictures, build the bundled samples: `npm run build -- examples/images`.
 
+### Saving your settings
+
+Instead of repeating options on every build, copy the example config and edit it:
+
+```bash
+cp gallery.config.example.json gallery.config.json
+```
+
+```json
+{
+  "$schema": "./gallery.config.schema.json",
+  "folder": "~/Pictures/wallpapers",
+  "title": "Wallpapers",
+  "interval": 60
+}
+```
+
+From then on, `npm run build` is enough. `gallery.config.json` is ignored by git, so your paths
+stay on your machine. The `$schema` line gives you autocomplete and validation in editors that
+support JSON Schema. Options passed on the command line still override the file for that build,
+and `--config <file>` reads a different one.
+
 ### Updating your images
 
-Add or remove files in your folder and run the same `npm run build` command again. A plugin
-loaded from **Development** reloads on its own.
+Add or remove files in your folder and run `npm run build` again. A plugin loaded from
+**Development** reloads on its own.
 
 If you installed it with **Install plugin → Local folder** instead, Orca keeps a copy, so you
 need to install it again after each build.
 
 ## Options
 
-```text
-npm run build -- [folder] [options]
+| Option                  | Config key  | Default   | Description                                       |
+| ----------------------- | ----------- | --------- | ------------------------------------------------- |
+| `[folder]`              | `folder`    | `images`  | Folder with your images.                          |
+| `-o, --out <dir>`       | `out`       | `dist`    | Output folder for the plugin.                     |
+| `-t, --title <text>`    | `title`     | `Gallery` | Panel title shown in Orca.                        |
+| `-i, --interval <sec>`  | `interval`  | `180`     | Seconds between images. `0` disables rotation.    |
+| `-s, --max-size <px>`   | `maxSize`   | `800`     | Longest side of each image, in pixels.            |
+| `-q, --quality <1-100>` | `quality`   | `80`      | WebP quality.                                     |
+| `--fit <mode>`          | `fit`       | `contain` | Initial mode: `contain` (whole image) or `cover`. |
+| `-r, --recursive`       | `recursive` | `false`   | Include images in subfolders.                     |
+| `-c, --config <file>`   |             |           | Config file to read instead of the default.       |
 
-  folder                 Folder with your images (default: ./images)
-  -o, --out <dir>        Output folder for the plugin (default: ./dist)
-  -t, --title <text>     Panel title shown in Orca (default: "Gallery")
-  -i, --interval <sec>   Seconds between images, 0 to disable rotation (default: 180)
-  -s, --max-size <px>    Longest side of each image in pixels (default: 800)
-  -q, --quality <1-100>  WebP quality (default: 80)
-      --fit <mode>       Initial mode: contain | cover (default: contain)
-  -r, --recursive        Include images in subfolders
-```
+Precedence: command line, then `gallery.config.json`, then the defaults. Paths in the config
+file are relative to the file, and `~` means your home folder.
 
 ## How it works
 
