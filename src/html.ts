@@ -4,6 +4,8 @@ import { build } from 'esbuild';
 import type { GalleryConfig } from './panel/config.ts';
 
 const PANEL_DIR = new URL('./panel/', import.meta.url);
+/** The panel's own sources: TypeScript in the repository, compiled JavaScript in the npm package. */
+const PANEL_ENTRY_POINT = import.meta.url.endsWith('.ts') ? 'main.ts' : 'main.js';
 
 /** Keeps "</script>" and "<!--" inside the JSON from closing the script element. */
 export function serializeConfig(config: GalleryConfig): string {
@@ -12,7 +14,7 @@ export function serializeConfig(config: GalleryConfig): string {
 
 async function bundlePanelScript(): Promise<string> {
   const result = await build({
-    entryPoints: [fileURLToPath(new URL('main.ts', PANEL_DIR))],
+    entryPoints: [fileURLToPath(new URL(PANEL_ENTRY_POINT, PANEL_DIR))],
     bundle: true,
     write: false,
     format: 'iife',
