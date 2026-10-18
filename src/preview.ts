@@ -13,9 +13,9 @@ const CSP =
   "style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'";
 
 export const THEMES = {
-  dark: '--background:#0a0a0a;--foreground:#fafafa;--secondary:#262626;--muted-foreground:#a1a1a1;--border:rgb(255 255 255 / 0.07);--ring:#737373;--radius:0.625rem',
+  dark: '--background:#0a0a0a;--foreground:#fafafa;--secondary:#262626;--muted-foreground:#a1a1a1;--border:rgb(255 255 255 / 0.07);--ring:#737373;--input:rgb(255 255 255 / 0.15);--primary:#e5e5e5;--primary-foreground:#171717;--destructive:#ff6568;--radius:0.625rem',
   light:
-    '--background:#fff;--foreground:#0a0a0a;--secondary:#f5f5f5;--muted-foreground:#737373;--border:#e5e5e5;--ring:#a1a1a1;--radius:0.625rem',
+    '--background:#fff;--foreground:#0a0a0a;--secondary:#f5f5f5;--muted-foreground:#737373;--border:#e5e5e5;--ring:#a1a1a1;--input:#e5e5e5;--primary:#171717;--primary-foreground:#fafafa;--destructive:#e40014;--radius:0.625rem',
 } as const;
 
 function escapeAttribute(value: string): string {
@@ -26,7 +26,10 @@ export function orcaShell(panelHtml: string, theme: keyof typeof THEMES): string
   return (
     `<!doctype html>\n<html class="${theme}">\n<head>\n<meta charset="utf-8">\n` +
     `<meta http-equiv="Content-Security-Policy" content="${CSP}">\n` +
-    `<style>:root{${THEMES[theme]}}</style>\n</head>\n` +
+    `<style>:root{${THEMES[theme]}}</style>\n` +
+    // Orca swallows every form submit inside a panel, so the panel must not rely on one.
+    `<script>window.addEventListener('submit',function(e){e.preventDefault();e.stopImmediatePropagation()},true)</script>\n` +
+    `</head>\n` +
     panelHtml
   );
 }

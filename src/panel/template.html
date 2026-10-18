@@ -31,6 +31,18 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
       </button>
       <span id="counter" class="counter" role="status"></span>
+      <button
+        type="button"
+        class="control"
+        data-action="interval"
+        aria-expanded="false"
+        aria-controls="interval-editor"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </svg>
+      </button>
       <button type="button" class="control" data-action="fit">
         <svg class="icon-fill" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />
@@ -39,6 +51,22 @@
           <path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" />
         </svg>
       </button>
+      <div id="interval-editor" class="interval-editor" hidden>
+        <label id="interval-label" for="interval-input"></label>
+        <div class="interval-row">
+          <input
+            id="interval-input"
+            type="number"
+            inputmode="numeric"
+            min="0"
+            max="86400"
+            step="1"
+            aria-describedby="interval-hint"
+          />
+          <button type="button" id="interval-apply" class="apply"></button>
+        </div>
+        <p id="interval-hint" class="hint"></p>
+      </div>
     </div>
 
     <script type="application/json" id="gallery-config">
