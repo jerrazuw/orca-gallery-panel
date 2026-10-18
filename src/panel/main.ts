@@ -1,4 +1,10 @@
-import { CONFIG_ELEMENT_ID, parseConfig, type FitMode, type GalleryConfig } from './config.ts';
+import {
+  CONFIG_ELEMENT_ID,
+  parseConfig,
+  parseIntervalSeconds,
+  type FitMode,
+  type GalleryConfig,
+} from './config.ts';
 import { catalogs, pickLocale, type Messages } from './i18n.ts';
 import { Playlist } from './playlist.ts';
 
@@ -28,12 +34,20 @@ class Gallery {
   readonly #t: Messages;
   readonly #playlist: Playlist;
   readonly #layers: readonly [HTMLImageElement, HTMLImageElement];
-  readonly #buttons: Record<'previous' | 'next' | 'toggle' | 'fit', HTMLButtonElement>;
+  readonly #buttons: Record<'previous' | 'next' | 'toggle' | 'interval' | 'fit', HTMLButtonElement>;
   readonly #counter: HTMLElement;
+  readonly #editor: {
+    root: HTMLElement;
+    label: HTMLLabelElement;
+    input: HTMLInputElement;
+    apply: HTMLButtonElement;
+    hint: HTMLElement;
+  };
   readonly #failed = new Set<number>();
   #front: 0 | 1 = 0;
   #paused = false;
   #fit: FitMode;
+  #intervalMs: number;
   #timer: ReturnType<typeof setTimeout> | undefined;
   #request = 0;
 
@@ -41,6 +55,7 @@ class Gallery {
     this.#config = config;
     this.#t = t;
     this.#fit = config.fit;
+    this.#intervalMs = config.intervalMs;
     this.#playlist = new Playlist(config.images.length);
     this.#layers = [query('#layer-a', HTMLImageElement), query('#layer-b', HTMLImageElement)];
     this.#counter = query('#counter', HTMLElement);
@@ -49,7 +64,15 @@ class Gallery {
       previous: button('previous'),
       next: button('next'),
       toggle: button('toggle'),
+      interval: button('interval'),
       fit: button('fit'),
+    };
+    this.#editor = {
+      root: query('#interval-editor', HTMLElement),
+      label: query('#interval-label', HTMLLabelElement),
+      input: query('#interval-input', HTMLInputElement),
+      apply: query('#interval-apply', HTMLButtonElement),
+      hint: query('#interval-hint', HTMLElement),
     };
   }
 
@@ -61,8 +84,11 @@ class Gallery {
     document.body.classList.toggle('single', this.#size === 1);
     setLabel(this.#buttons.previous, this.#t.previous);
     setLabel(this.#buttons.next, this.#t.next);
+    this.#editor.label.textContent = this.#t.intervalLabel;
+    this.#editor.apply.textContent = this.#t.apply;
     this.#renderPaused();
     this.#renderFit();
+    this.#renderInterval();
 
     this.#buttons.previous.addEventListener('click', () => {
       this.#previous();
@@ -75,6 +101,30 @@ class Gallery {
     });
     this.#buttons.fit.addEventListener('click', () => {
       this.#toggleFit();
+    });
+    this.#buttons.interval.addEventListener('click', () => {
+      if (this.#editor.root.hidden) this.#openEditor();
+      else this.#closeEditor();
+    });
+    // Enter and a button instead of a <form>: Orca cancels every submit event inside a panel.
+    this.#editor.apply.addEventListener('click', () => {
+      this.#applyInterval();
+    });
+    this.#editor.input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        this.#applyInterval();
+      }
+    });
+    this.#editor.input.addEventListener('input', () => {
+      this.#showHint(false);
+    });
+    document.addEventListener('pointerdown', (event) => {
+      const target = event.target;
+      const inside =
+        target instanceof Node &&
+        (this.#editor.root.contains(target) || this.#buttons.interval.contains(target));
+      if (!this.#editor.root.hidden && !inside) this.#closeEditor(false);
     });
     for (const layer of this.#layers) {
       layer.addEventListener('click', () => {
@@ -132,11 +182,11 @@ class Gallery {
   #schedule(): void {
     clearTimeout(this.#timer);
     this.#timer = undefined;
-    const rotates = this.#config.intervalMs > 0 && this.#size > 1;
+    const rotates = this.#intervalMs > 0 && this.#size > 1;
     if (rotates && !this.#paused && !document.hidden) {
       this.#timer = setTimeout(() => {
         this.#next();
-      }, this.#config.intervalMs);
+      }, this.#intervalMs);
     }
   }
 
@@ -149,6 +199,46 @@ class Gallery {
   #toggleFit(): void {
     this.#fit = this.#fit === 'contain' ? 'cover' : 'contain';
     this.#renderFit();
+  }
+
+  #openEditor(): void {
+    this.#editor.root.hidden = false;
+    this.#buttons.interval.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('editing');
+    this.#editor.input.value = String(this.#intervalMs / 1000);
+    this.#showHint(false);
+    this.#editor.input.focus();
+    this.#editor.input.select();
+  }
+
+  #closeEditor(restoreFocus = true): void {
+    this.#editor.root.hidden = true;
+    this.#buttons.interval.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('editing');
+    if (restoreFocus) this.#buttons.interval.focus();
+  }
+
+  #applyInterval(): void {
+    const seconds = parseIntervalSeconds(this.#editor.input.value);
+    if (seconds === undefined) {
+      this.#showHint(true);
+      this.#editor.input.focus();
+      return;
+    }
+    this.#intervalMs = seconds * 1000;
+    this.#renderInterval();
+    this.#closeEditor();
+    this.#schedule();
+  }
+
+  #showHint(invalid: boolean): void {
+    this.#editor.input.setAttribute('aria-invalid', String(invalid));
+    this.#editor.hint.classList.toggle('error', invalid);
+    this.#editor.hint.textContent = invalid ? this.#t.intervalInvalid : this.#t.intervalHint;
+  }
+
+  #renderInterval(): void {
+    setLabel(this.#buttons.interval, this.#t.interval(this.#intervalMs / 1000));
   }
 
   #renderPaused(): void {
@@ -170,6 +260,11 @@ class Gallery {
 
   #onKey(event: KeyboardEvent): void {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.key === 'Escape' && !this.#editor.root.hidden) {
+      this.#closeEditor();
+      return;
+    }
+    if (event.target instanceof HTMLInputElement) return;
     if (event.key === ' ' && event.target instanceof HTMLButtonElement) return;
 
     const actions: Partial<Record<string, () => void>> = {

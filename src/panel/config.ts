@@ -38,3 +38,13 @@ export function parseConfig(raw: unknown): GalleryConfig {
 
   return { images: parsed, intervalMs, fit };
 }
+
+export const MAX_INTERVAL_SECONDS = 86_400;
+
+/** Parses what a user typed as the interval; undefined unless it is a whole number of seconds in range. */
+export function parseIntervalSeconds(text: string): number | undefined {
+  const trimmed = text.trim();
+  if (!/^\d+$/.test(trimmed)) return undefined;
+  const seconds = Number(trimmed);
+  return seconds <= MAX_INTERVAL_SECONDS ? seconds : undefined;
+}

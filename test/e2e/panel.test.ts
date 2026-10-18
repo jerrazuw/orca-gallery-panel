@@ -171,9 +171,74 @@ describe('panel in a sandboxed Orca-like frame', () => {
     await page.close();
   });
 
+  it('changes the interval from the clock button', async () => {
+    const { page, frame } = await open({ intervalMs: 0 });
+    const clock = '[data-action="interval"]';
+    assert.equal(
+      await frame.getAttribute(clock, 'aria-label'),
+      'Change interval (automatic change is off)',
+    );
+
+    await frame.click(clock);
+    assert.equal(await frame.getAttribute(clock, 'aria-expanded'), 'true');
+    assert.equal(await frame.inputValue('#interval-input'), '0');
+    assert.equal(await frame.evaluate(() => document.activeElement?.id), 'interval-input');
+
+    await frame.fill('#interval-input', '1');
+    await frame.press('#interval-input', 'Enter');
+    assert.equal(await frame.isVisible('#interval-editor'), false);
+    assert.equal(await frame.getAttribute(clock, 'aria-label'), 'Change interval (1 s)');
+
+    const first = await visibleLabel(frame);
+    await waitFor(
+      () => visibleLabel(frame),
+      (label) => label !== first,
+      3000,
+    );
+    await page.close();
+  });
+
+  it('rejects an invalid interval and keeps the editor open', async () => {
+    const { page, frame } = await open({ intervalMs: 60_000 });
+    await frame.click('[data-action="interval"]');
+    await frame.fill('#interval-input', '1.5');
+    await frame.click('#interval-apply');
+
+    assert.equal(await frame.isVisible('#interval-editor'), true);
+    assert.equal(await frame.getAttribute('#interval-input', 'aria-invalid'), 'true');
+    assert.match((await frame.textContent('#interval-hint')) ?? '', /whole number/);
+    assert.equal(
+      await frame.getAttribute('[data-action="interval"]', 'aria-label'),
+      'Change interval (60 s)',
+    );
+    await page.close();
+  });
+
+  it('does not treat typing in the editor as shortcuts, and closes on Escape or outside clicks', async () => {
+    const { page, frame } = await open({ fit: 'contain' });
+    await frame.click('[data-action="interval"]');
+    await frame.press('#interval-input', 'f');
+    await frame.press('#interval-input', ' ');
+    assert.equal(await frame.getAttribute('body', 'data-fit'), 'contain');
+    assert.equal(await frame.getAttribute('[data-action="toggle"]', 'aria-pressed'), 'false');
+
+    await frame.press('#interval-input', 'Escape');
+    assert.equal(await frame.isVisible('#interval-editor'), false);
+    assert.equal(
+      await frame.evaluate(() => document.activeElement?.getAttribute('data-action')),
+      'interval',
+    );
+
+    await frame.click('[data-action="interval"]');
+    await frame.click('.stage', { position: { x: 20, y: 20 }, force: true });
+    assert.equal(await frame.isVisible('#interval-editor'), false);
+    await page.close();
+  });
+
   it('hides navigation for a single image', async () => {
     const { page, frame } = await open({ images: [images[0] as GalleryImage] });
     assert.equal(await frame.isVisible('[data-action="next"]'), false);
+    assert.equal(await frame.isVisible('[data-action="interval"]'), false);
     assert.equal(await frame.isVisible('[data-action="fit"]'), true);
     await page.close();
   });
