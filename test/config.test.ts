@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { parseConfig } from '../src/panel/config.ts';
+
+const valid = {
+  images: [{ src: 'data:image/webp;base64,AAAA', label: 'cat' }],
+  intervalMs: 1000,
+  fit: 'contain',
+};
+
+describe('parseConfig', () => {
+  it('accepts a valid config', () => {
+    assert.deepEqual(parseConfig(valid), valid);
+  });
+
+  it('defaults a missing label to an empty string', () => {
+    const config = parseConfig({ ...valid, images: [{ src: 'data:image/png;base64,AA' }] });
+    assert.equal(config.images[0]?.label, '');
+  });
+
+  it('only accepts inline data:image sources', () => {
+    assert.throws(
+      () => parseConfig({ ...valid, images: [{ src: 'https://example.com/a.png' }] }),
+      /images\[0\]\.src/,
+    );
+  });
+
+  it('rejects an invalid interval or fit mode', () => {
+    assert.throws(() => parseConfig({ ...valid, intervalMs: -1 }), /intervalMs/);
+    assert.throws(() => parseConfig({ ...valid, intervalMs: Number.NaN }), /intervalMs/);
+    assert.throws(() => parseConfig({ ...valid, fit: 'stretch' }), /fit/);
+  });
+
+  it('rejects anything that is not an object', () => {
+    assert.throws(() => parseConfig(null), TypeError);
+    assert.throws(() => parseConfig({ ...valid, images: 'nope' }), /images/);
+  });
+});
