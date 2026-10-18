@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-18
+
 ### Added
 
 - `gallery.config.json`: save your build settings once and rebuild with a plain `npm run build`.
@@ -43,5 +45,6 @@ All notable changes to this project are documented here. The format follows
   Orca supports, so the panel showed a generic plug.
 - `engines.orca` is now `>=1.4.160`, the first Orca release with plugin support.
 
-[Unreleased]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/jerrazuw/orca-gallery-panel/releases/tag/v1.0.0
