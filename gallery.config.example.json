@@ -1,0 +1,6 @@
+{
+  "$schema": "./gallery.config.schema.json",
+  "folder": "~/Pictures/wallpapers",
+  "title": "Wallpapers",
+  "interval": 60
+}
