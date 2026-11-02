@@ -33,11 +33,9 @@ to the `Unreleased` section of [CHANGELOG.md](CHANGELOG.md).
 
 ## Publishing to npm
 
-The package is marked `"private": true` so it can't be published by accident. To publish it:
-
-1. Remove `"private": true` from `package.json`.
-2. Check what will be published with `npm pack --dry-run` (it compiles `lib/` first).
-3. Run `npm publish`. After that, anyone can run `npx orca-gallery-panel <folder>`.
+The package is published as [`orca-gallery-panel`](https://www.npmjs.com/package/orca-gallery-panel).
+After bumping the version (see below), check what will be published with `npm pack --dry-run`
+(it compiles `lib/` first), then run `npm publish`.
 
 ## Releasing
 

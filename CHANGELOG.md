@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Published on npm: `npx orca-gallery-panel <folder>` builds the plugin without cloning the
+  repository.
+
 ## [1.2.0] - 2026-10-18
 
 ### Added

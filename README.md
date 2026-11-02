@@ -41,16 +41,27 @@ can change without leaving Orca.
 Requires [Node.js](https://nodejs.org) 22.18 or later and Orca 1.4.160 or later.
 
 ```bash
+mkdir ~/orca-gallery && cd ~/orca-gallery
+npx orca-gallery-panel ~/Pictures/wallpapers --title "Wallpapers"
+```
+
+The plugin is written to `dist/` in the current folder. In Orca, go to
+**Settings → Plugins → Development**, click **Add path** and enter the full path to `dist/`
+(here `~/orca-gallery/dist`). Then open the panel from the right sidebar.
+
+The examples below use `npm run build`, which is how the command runs from a clone of this
+repository. With `npx`, replace `npm run build --` with `npx orca-gallery-panel` and run it from
+the same folder each time, so it finds your `gallery.config.json` and rebuilds the same `dist/`.
+
+To work from a clone instead (also the way to try the bundled samples with
+`npm run build -- examples/images`):
+
+```bash
 git clone https://github.com/jerrazuw/orca-gallery-panel.git
 cd orca-gallery-panel
 npm install
 npm run build -- ~/Pictures/wallpapers --title "Wallpapers"
 ```
-
-The plugin is written to `dist/`. In Orca, go to **Settings → Plugins → Development**, click
-**Add path** and enter the full path to `dist/`. Then open the panel from the right sidebar.
-
-To try it without your own pictures, build the bundled samples: `npm run build -- examples/images`.
 
 ### Saving your settings
 
