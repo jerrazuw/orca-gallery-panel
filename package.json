@@ -1,6 +1,6 @@
 {
   "name": "orca-gallery-panel",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Background images for the Orca agent IDE: a side panel with a rotating gallery of your own pictures.",
   "keywords": [
     "orca",
