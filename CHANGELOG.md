@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-02
+
 ### Added
 
 - Stacked layout: `--layout stack` (or `"layout": "stack"`) shows 2 to 4 images at once, stacked
@@ -89,7 +91,8 @@ All notable changes to this project are documented here. The format follows
   Orca supports, so the panel showed a generic plug.
 - `engines.orca` is now `>=1.4.160`, the first Orca release with plugin support.
 
-[Unreleased]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.1.0...v1.2.0
