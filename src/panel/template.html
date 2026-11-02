@@ -22,6 +22,19 @@
       <p id="message" class="message-text" role="status"></p>
     </main>
 
+    <aside id="demo-note" class="demo-note" aria-labelledby="demo-title" hidden>
+      <p id="demo-title" class="demo-title"></p>
+      <p id="demo-run"></p>
+      <code class="demo-command"
+        >npx orca-gallery-panel ~/Pictures --out ~/orca-gallery --watch</code
+      >
+      <p id="demo-add"></p>
+      <p id="demo-watch"></p>
+      <button type="button" id="demo-dismiss" class="demo-dismiss">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+    </aside>
+
     <div class="controls" role="toolbar">
       <button type="button" class="control" data-action="previous">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>

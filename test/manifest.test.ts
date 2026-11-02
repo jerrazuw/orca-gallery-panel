@@ -1,8 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { readFile } from 'node:fs/promises';
 import pkg from '../package.json' with { type: 'json' };
 import {
   createManifest,
+  DEMO_ICON,
+  DEMO_NAME,
+  DEMO_PLUGIN_ID,
+  DEMO_TITLE,
+  PLUGIN_ID,
   isGeneratedPanelFile,
   PANEL_ENTRY,
   PANEL_ID,
@@ -69,6 +75,30 @@ describe('createManifest', () => {
 
   it('asks for no capabilities', () => {
     assert.deepEqual(manifest.capabilities, []);
+  });
+});
+
+describe('createManifest for the demo', () => {
+  const regular = createManifest(DEMO_NAME, panelEntries([DEMO_TITLE]));
+  const demo = createManifest(DEMO_NAME, panelEntries([DEMO_TITLE]), { demo: true });
+
+  it('uses its own id, so it can sit next to a build of your own photos', () => {
+    assert.equal(regular.id, PLUGIN_ID);
+    assert.equal(demo.id, DEMO_PLUGIN_ID);
+    assert.match(demo.id, ID_FORMAT);
+  });
+
+  it('says it is a sample and has an icon for the plugin directory', () => {
+    assert.match(demo.description, /sample/);
+    assert.equal(demo.icon, DEMO_ICON);
+    assert.equal(regular.icon, undefined);
+  });
+
+  it('matches the committed plugin/ build (run npm run build:demo after changing it)', async () => {
+    const committed: unknown = JSON.parse(
+      await readFile(new URL('../plugin/orca-plugin.json', import.meta.url), 'utf8'),
+    );
+    assert.deepEqual(committed, demo);
   });
 });
 

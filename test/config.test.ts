@@ -9,11 +9,16 @@ const valid = {
   blur: true,
   effect: 'none',
   caption: false,
+  demo: false,
 };
 
 describe('parseConfig', () => {
   it('accepts a valid config', () => {
     assert.deepEqual(parseConfig(valid), valid);
+  });
+
+  it('treats a config without demo as a regular build', () => {
+    assert.equal(parseConfig({ ...valid, demo: undefined }).demo, false);
   });
 
   it('defaults a missing label to an empty string', () => {
@@ -35,6 +40,7 @@ describe('parseConfig', () => {
     assert.throws(() => parseConfig({ ...valid, effect: 'spin' }), /effect/);
     assert.throws(() => parseConfig({ ...valid, blur: 'yes' }), /blur/);
     assert.throws(() => parseConfig({ ...valid, caption: 1 }), /caption/);
+    assert.throws(() => parseConfig({ ...valid, demo: 'yes' }), /demo/);
   });
 
   it('rejects anything that is not an object', () => {

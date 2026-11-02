@@ -25,10 +25,13 @@ jobs:
 
       - run: npm test
 
-      - name: Build the demo plugin
+      - name: Check the demo plugin in plugin/ is this version
         run: |
-          npm run build -- examples/images --out gallery-panel-demo --title "Gallery (demo)"
-          zip -r gallery-panel-demo.zip gallery-panel-demo
+          version="$(node -p "require('./plugin/orca-plugin.json').version")"
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "plugin/ is v$version; run npm run build:demo"; exit 1; }
+
+      - name: Zip the demo plugin
+        run: cp -R plugin gallery-panel-demo && zip -r gallery-panel-demo.zip gallery-panel-demo
 
       - name: Extract release notes from CHANGELOG.md
         run: |

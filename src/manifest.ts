@@ -1,6 +1,17 @@
 import { pkg } from './package-info.ts';
 
 export const PLUGIN_ID = 'gallery-panel';
+/**
+ * The sample build in plugin/, listed in Orca's plugin directory. A different id
+ * lets it sit next to the plugin people build from their own photos.
+ */
+export const DEMO_PLUGIN_ID = 'gallery-panel-demo';
+export const DEMO_NAME = 'Gallery Panel (demo)';
+export const DEMO_TITLE = 'Gallery (demo)';
+export const DEMO_DESCRIPTION =
+  'Background images for Orca: a side panel that rotates through your pictures. This install shows sample images; the panel explains how to show a folder of your own photos that updates as you add more.';
+/** Square plugin icon, written next to the demo manifest. */
+export const DEMO_ICON = 'icon.png';
 export const PUBLISHER = 'jerrazuw';
 export const PANEL_ID = 'gallery';
 export const PANEL_ENTRY = 'panel.html';
@@ -20,6 +31,7 @@ export interface OrcaPluginManifest {
   author: { name: string; url: string };
   repository: string;
   engines: { orca: string };
+  icon?: string;
   pluginApi: 1;
   contributes: {
     panels: { id: string; title: string; icon: string; entry: string }[];
@@ -68,17 +80,22 @@ export function isGeneratedPanelFile(file: string): boolean {
   return file === PANEL_ENTRY || /^panel-[a-z0-9]+(?:-[a-z0-9]+)*\.html$/.test(file);
 }
 
-export function createManifest(name: string, panels: readonly PanelEntry[]): OrcaPluginManifest {
+export function createManifest(
+  name: string,
+  panels: readonly PanelEntry[],
+  { demo = false }: { demo?: boolean } = {},
+): OrcaPluginManifest {
   return {
     manifestVersion: 1,
-    id: PLUGIN_ID,
+    id: demo ? DEMO_PLUGIN_ID : PLUGIN_ID,
     publisher: PUBLISHER,
     name,
     version: pkg.version,
-    description: pkg.description,
+    description: demo ? DEMO_DESCRIPTION : pkg.description,
     author: pkg.author,
     repository: pkg.repository.url.replace(/^git\+/, ''),
     engines: { orca: `>=${MIN_ORCA_VERSION}` },
+    ...(demo ? { icon: DEMO_ICON } : {}),
     pluginApi: 1,
     contributes: {
       panels: panels.map(({ id, title, entry }) => ({ id, title, icon: PANEL_ICON, entry })),

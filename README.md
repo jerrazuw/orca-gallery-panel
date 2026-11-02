@@ -38,64 +38,80 @@ can change without leaving Orca.
 
 ## Quick start
 
-Requires [Node.js](https://nodejs.org) 22.18 or later and Orca 1.4.160 or later.
+### 1. Try it from Orca
+
+[Open in Orca](https://onorca.dev/plugins/jerrazuw.gallery-panel-demo?catalog=community) takes you
+to **Gallery Panel (demo)** in Orca's plugin directory; the first time, Orca asks to add its
+community catalog. Click **Install**, then open the panel from the right sidebar. It rotates
+through a few sample images and explains, inside the panel, how to show your own.
+
+Orca installs plugins from the directory as they are, so the listed one can only carry sample
+images. Your own photos take one command, below.
+
+### 2. Show your own photos
+
+You need [Node.js](https://nodejs.org) 22.18 or later and Orca 1.4.160 or later. In a terminal,
+run this with the path to your folder instead of `~/Pictures/wallpapers`:
 
 ```bash
-mkdir ~/orca-gallery && cd ~/orca-gallery
-npx orca-gallery-panel ~/Pictures/wallpapers --title "Wallpapers"
+npx orca-gallery-panel ~/Pictures/wallpapers --out ~/orca-gallery --watch
 ```
 
-The plugin is written to `dist/` in the current folder. In Orca, go to
-**Settings → Plugins → Development**, click **Add path** and enter the full path to `dist/`
-(here `~/orca-gallery/dist`). Then open the panel from the right sidebar.
+It packs every image in the folder into an Orca plugin in `~/orca-gallery`, then keeps watching
+the folder. In Orca, go to **Settings → Plugins → Development**, click **Add path** and enter the
+full path of that folder (`/Users/<you>/orca-gallery` on a Mac). Open the panel from the right
+sidebar.
 
-The examples below use `npm run build`, which is how the command runs from a clone of this
-repository. With `npx`, replace `npm run build --` with `npx orca-gallery-panel` and run it from
-the same folder each time, so it finds your `gallery.config.json` and rebuilds the same `dist/`.
+If you installed the demo, uninstall it from **Settings → Plugins** so you don't have two
+galleries.
 
-To work from a clone instead (also the way to try the bundled samples with
-`npm run build -- examples/images`):
+### 3. Add photos whenever you like
 
-```bash
-git clone https://github.com/jerrazuw/orca-gallery-panel.git
-cd orca-gallery-panel
-npm install
-npm run build -- ~/Pictures/wallpapers --title "Wallpapers"
-```
+While the command runs, copy photos into your folder or delete them, and the panel updates by
+itself within a few seconds: the plugin is rebuilt and Orca reloads it. Copying 20 photos at once
+triggers a single rebuild. A good place to leave it running is a terminal tab inside Orca.
+
+`Ctrl+C` stops it. Next time, run the same command again: it picks up whatever changed in the
+meantime and goes back to watching. Without `--watch`, it builds once and exits, so run it again
+after changing your photos.
 
 ### Saving your settings
 
-Instead of repeating options on every build, copy the example config and edit it:
-
-```bash
-cp gallery.config.example.json gallery.config.json
-```
+Instead of typing the options every time, put them in a `gallery.config.json` in the folder you
+run the command from (your home folder, for example):
 
 ```json
 {
-  "$schema": "./gallery.config.schema.json",
+  "$schema": "https://unpkg.com/orca-gallery-panel/gallery.config.schema.json",
   "folder": "~/Pictures/wallpapers",
+  "out": "~/orca-gallery",
   "title": "Wallpapers",
   "interval": 60
 }
 ```
 
-From then on, `npm run build` is enough. `gallery.config.json` is ignored by git, so your paths
-stay on your machine. The `$schema` line gives you autocomplete and validation in editors that
-support JSON Schema. Options passed on the command line still override the file for that build,
+From then on, `npx orca-gallery-panel --watch` is enough, and editing the file while it runs
+rebuilds the panel too. The `$schema` line gives you autocomplete and validation in editors that
+support JSON Schema. Options passed on the command line still override the file for that run,
 and `--config <file>` reads a different one.
 
-### Updating your images
+If you installed the plugin with **Install plugin → Local folder** instead of **Development**,
+Orca keeps a copy, so you need to install it again after each build.
 
-Add or remove files in your folder and run `npm run build` again. A plugin loaded from
-**Development** reloads on its own.
+### Working from a clone
 
-Or leave `npm run build -- --watch` running: it rebuilds whenever an image in your folders or
-the config file changes, and a burst of changes (copying 20 photos at once) triggers a single
-rebuild.
+To change the code, or to try the bundled samples with `npm run build -- examples/images`:
 
-If you installed it with **Install plugin → Local folder** instead, Orca keeps a copy, so you
-need to install it again after each build.
+```bash
+git clone https://github.com/jerrazuw/orca-gallery-panel.git
+cd orca-gallery-panel
+npm install
+npm run build -- ~/Pictures/wallpapers --watch
+```
+
+Here `npm run build --` takes the place of `npx orca-gallery-panel`, and the plugin goes to
+`dist/` unless you pass `--out`. `gallery.config.json` at the root of the clone is ignored by
+git, so your paths stay on your machine; `gallery.config.example.json` is a starting point.
 
 ## Options
 
@@ -182,6 +198,7 @@ npm run preview      # writes dist/preview.html: the built panel inside an Orca-
 | `src/preview.ts`               | Reproduces Orca's panel shell so the panel can be checked in a browser.       |
 | `test/`                        | Unit tests (`node:test`) and browser tests (`test/e2e/`, Playwright).         |
 | `examples/images/`             | Sample images, made by `scripts/generate-examples.ts`.                        |
+| `plugin/`                      | The demo build listed in Orca's plugin directory, by `npm run build:demo`.    |
 
 TypeScript runs directly on Node through
 [type stripping](https://nodejs.org/api/typescript.html#type-stripping), so there is no compile
@@ -190,10 +207,13 @@ compiled to `lib/` by `npm run build:lib`, which `npm pack` runs on its own. CI 
 macOS and Windows with Node 22.18, 22 and 24, and installs the packed package in an empty
 project to check that the command works.
 
-## Why it isn't in the Orca marketplace
+## In Orca's plugin directory
 
-Plugins in the [Orca marketplace](https://github.com/stablyai/orca-plugins) are installed from a
-git repository as they are, but this panel only works once it has been built with your images. A marketplace entry could only ship the sample gallery.
+Orca lists a plugin from a tagged commit of its repository and installs it as it is, with no build
+step, so it cannot pack your photos. The listed plugin is the build in `plugin/`: the sample images
+with a note on how to load your own, under its own id (`gallery-panel-demo`) so it can sit next to
+the plugin you build. `npm run build:demo` writes it, and `npm version` reruns that for every
+release.
 
 ## Contributing
 

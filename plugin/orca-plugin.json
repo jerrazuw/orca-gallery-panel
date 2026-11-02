@@ -1,0 +1,29 @@
+{
+  "manifestVersion": 1,
+  "id": "gallery-panel-demo",
+  "publisher": "jerrazuw",
+  "name": "Gallery Panel (demo)",
+  "version": "1.3.0",
+  "description": "Background images for Orca: a side panel that rotates through your pictures. This install shows sample images; the panel explains how to show a folder of your own photos that updates as you add more.",
+  "author": {
+    "name": "Jaime Errázuriz Werth",
+    "url": "https://github.com/jerrazuw"
+  },
+  "repository": "https://github.com/jerrazuw/orca-gallery-panel.git",
+  "engines": {
+    "orca": ">=1.4.160"
+  },
+  "icon": "icon.png",
+  "pluginApi": 1,
+  "contributes": {
+    "panels": [
+      {
+        "id": "gallery",
+        "title": "Gallery (demo)",
+        "icon": "layers",
+        "entry": "panel.html"
+      }
+    ]
+  },
+  "capabilities": []
+}

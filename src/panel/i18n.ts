@@ -18,6 +18,11 @@ export interface Messages {
   counter: (position: number, total: number) => string;
   empty: string;
   allFailed: string;
+  demoTitle: string;
+  demoRun: string;
+  demoAdd: string;
+  demoWatch: string;
+  demoDismiss: string;
 }
 
 const en: Messages = {
@@ -43,6 +48,13 @@ const en: Messages = {
   counter: (position, total) => `Image ${String(position)} of ${String(total)}`,
   empty: 'No images yet. Rebuild the panel with a folder that contains images.',
   allFailed: 'None of the images could be displayed.',
+  demoTitle: 'These are sample images',
+  demoRun: 'To show your own photos, run this in a terminal, with the path to your folder:',
+  demoAdd:
+    'Then, in Orca, go to Settings → Plugins → Development, click Add path and enter the full path of orca-gallery in your home folder.',
+  demoWatch:
+    'Leave the command running: photos you add to or remove from your folder show up in the panel on their own.',
+  demoDismiss: 'Hide this note',
 };
 
 const es: Messages = {
@@ -69,6 +81,13 @@ const es: Messages = {
   counter: (position, total) => `Imagen ${String(position)} de ${String(total)}`,
   empty: 'Todavía no hay imágenes. Vuelve a generar el panel con una carpeta que tenga imágenes.',
   allFailed: 'No se pudo mostrar ninguna de las imágenes.',
+  demoTitle: 'Estas son imágenes de ejemplo',
+  demoRun: 'Para ver tus propias fotos, corre esto en una terminal, con la ruta de tu carpeta:',
+  demoAdd:
+    'Después, en Orca, ve a Settings → Plugins → Development, haz clic en Add path y escribe la ruta completa de orca-gallery en tu carpeta personal.',
+  demoWatch:
+    'Deja el comando corriendo: las fotos que agregues o quites de tu carpeta aparecen solas en el panel.',
+  demoDismiss: 'Ocultar este aviso',
 };
 
 export const catalogs = { en, es } as const;

@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Listed in Orca's plugin directory as **Gallery Panel (demo)**: the sample images, with a note in
+  the panel on how to show a folder of your own photos that updates as you add more. The build
+  lives in `plugin/`, and `npm version` regenerates it for every release.
+
+### Changed
+
+- The quick start now leads with a single `npx orca-gallery-panel` command that keeps watching
+  your folder, and explains how new photos reach the panel on their own.
+
 ## [1.3.0] - 2026-11-02
 
 ### Added

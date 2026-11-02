@@ -12,6 +12,7 @@ const BASE: Omit<GalleryConfig, 'images'> = {
   blur: true,
   effect: 'none',
   caption: false,
+  demo: false,
 };
 const BROKEN: GalleryImage = { src: 'data:image/webp;base64,AAAA', label: 'broken' };
 
@@ -301,6 +302,24 @@ describe('panel in a sandboxed Orca-like frame', () => {
     assert.equal(await frame.isVisible('[data-action="next"]'), false);
     assert.equal(await frame.isVisible('[data-action="interval"]'), false);
     assert.equal(await frame.isVisible('[data-action="fit"]'), true);
+    await page.close();
+  });
+
+  it('explains how to load your own photos only in the demo build, until dismissed', async () => {
+    const regular = await open({});
+    assert.equal(await regular.frame.isVisible('#demo-note'), false);
+    await regular.page.close();
+
+    const { page, frame, errors } = await open({ demo: true });
+    assert.equal(await frame.isVisible('#demo-note'), true);
+    assert.match(
+      (await frame.textContent('.demo-command')) ?? '',
+      /npx orca-gallery-panel .+ --watch/,
+    );
+    assert.match((await frame.textContent('#demo-watch')) ?? '', /on their own/);
+    await frame.click('#demo-dismiss');
+    assert.equal(await frame.isVisible('#demo-note'), false);
+    assert.deepEqual(errors, []);
     await page.close();
   });
 

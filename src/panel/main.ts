@@ -30,6 +30,21 @@ function showMessage(text: string): void {
   query('#message', HTMLElement).textContent = text;
 }
 
+/** In the sample build, explains how to load a folder of your own photos. */
+function showDemoNote(t: Messages): void {
+  const note = query('#demo-note', HTMLElement);
+  query('#demo-title', HTMLElement).textContent = t.demoTitle;
+  query('#demo-run', HTMLElement).textContent = t.demoRun;
+  query('#demo-add', HTMLElement).textContent = t.demoAdd;
+  query('#demo-watch', HTMLElement).textContent = t.demoWatch;
+  const dismiss = query('#demo-dismiss', HTMLButtonElement);
+  setLabel(dismiss, t.demoDismiss);
+  dismiss.addEventListener('click', () => {
+    note.hidden = true;
+  });
+  note.hidden = false;
+}
+
 function readConfig(): GalleryConfig {
   const raw = document.getElementById(CONFIG_ELEMENT_ID)?.textContent ?? '';
   return parseConfig(JSON.parse(raw));
@@ -402,6 +417,7 @@ function main(): void {
     return;
   }
   new Gallery(config, t).start();
+  if (config.demo) showDemoNote(t);
 }
 
 main();

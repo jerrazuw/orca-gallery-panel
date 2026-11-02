@@ -49,6 +49,8 @@ export interface BuildOptions {
   /** Plugin name in Orca's plugin list. */
   name: string;
   galleries: GalleryOptions[];
+  /** Builds the sample plugin listed in Orca's plugin directory (scripts/build-demo-plugin.ts). */
+  demo?: boolean;
 }
 
 export type ParsedCommand =

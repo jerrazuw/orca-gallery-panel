@@ -353,9 +353,89 @@ body.single .counter {
   color: var(--gallery-danger);
 }
 
+/* Note in the sample build listed in Orca's plugin directory */
+
+.demo-note {
+  position: absolute;
+  inset: 12px 12px auto;
+  max-height: calc(100% - 80px);
+  overflow-y: auto;
+  padding: 10px 32px 10px 12px;
+  border: 1px solid var(--gallery-border);
+  border-radius: var(--gallery-radius);
+  background: color-mix(in srgb, var(--gallery-surface) 92%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+.demo-note[hidden] {
+  display: none;
+}
+
+.demo-note p {
+  margin: 0 0 6px;
+}
+
+.demo-note p:last-of-type {
+  margin-bottom: 0;
+  color: var(--gallery-muted);
+}
+
+.demo-title {
+  font-weight: 600;
+}
+
+.demo-command {
+  display: block;
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border-radius: calc(var(--gallery-radius) - 4px);
+  background: var(--gallery-bg);
+  font:
+    11px/1.4 ui-monospace,
+    monospace;
+  overflow-wrap: break-word;
+  user-select: all;
+}
+
+.demo-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--gallery-radius) - 4px);
+  background: transparent;
+  color: var(--gallery-muted);
+  cursor: pointer;
+}
+
+.demo-dismiss:hover {
+  background: color-mix(in srgb, var(--gallery-fg) 10%, transparent);
+  color: var(--gallery-fg);
+}
+
+.demo-dismiss svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+body.message .demo-note {
+  display: none;
+}
+
 /* Focus and motion */
 
 .control:focus-visible,
+.demo-dismiss:focus-visible,
 .apply:focus-visible,
 .interval-row input:focus-visible,
 .switch input:focus-visible {

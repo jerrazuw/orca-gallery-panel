@@ -20,6 +20,8 @@ export interface PanelSettings {
 
 export interface GalleryConfig extends PanelSettings {
   images: GalleryImage[];
+  /** The sample build listed in Orca's plugin directory: shows how to load your own photos. */
+  demo: boolean;
 }
 
 export const CONFIG_ELEMENT_ID = 'gallery-config';
@@ -35,7 +37,7 @@ export function isEffect(value: unknown): value is Effect {
 
 export function parseConfig(raw: unknown): GalleryConfig {
   if (typeof raw !== 'object' || raw === null) throw new TypeError('Config must be an object');
-  const { images, intervalMs, fit, blur, effect, caption } = raw as Record<string, unknown>;
+  const { images, intervalMs, fit, blur, effect, caption, demo } = raw as Record<string, unknown>;
 
   if (!Array.isArray(images)) throw new TypeError('Config.images must be an array');
   const parsed = images.map((image: unknown, i) => {
@@ -55,8 +57,11 @@ export function parseConfig(raw: unknown): GalleryConfig {
   }
   if (typeof blur !== 'boolean') throw new TypeError('Config.blur must be a boolean');
   if (typeof caption !== 'boolean') throw new TypeError('Config.caption must be a boolean');
+  if (demo !== undefined && typeof demo !== 'boolean') {
+    throw new TypeError('Config.demo must be a boolean');
+  }
 
-  return { images: parsed, intervalMs, fit, blur, effect, caption };
+  return { images: parsed, intervalMs, fit, blur, effect, caption, demo: demo ?? false };
 }
 
 /** Parses what a user typed as the interval; undefined unless it is a whole number of seconds in range. */

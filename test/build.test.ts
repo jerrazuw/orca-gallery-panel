@@ -175,6 +175,7 @@ describe('serializeConfig', () => {
       blur: true,
       effect: 'none',
       caption: false,
+      demo: false,
     });
     assert.doesNotMatch(json, /</);
     assert.equal(

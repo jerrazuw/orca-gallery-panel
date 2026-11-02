@@ -93,6 +93,7 @@ async function assertFolder(folder: string): Promise<void> {
 async function buildGallery(
   gallery: GalleryOptions,
   logger: Logger,
+  demo: boolean,
 ): Promise<{ html: string; images: ImageReport[]; skipped: GalleryResult['skipped'] }> {
   await assertFolder(gallery.input);
   const files = await findImages(gallery.input, gallery.recursive);
@@ -139,6 +140,7 @@ async function buildGallery(
     blur: gallery.blur,
     effect: gallery.effect,
     caption: gallery.caption,
+    demo,
   });
   const panelBytes = Buffer.byteLength(html);
   if (panelBytes > PANEL_ENTRY_MAX_BYTES) {
@@ -163,7 +165,8 @@ export async function buildPlugin(
 ): Promise<BuildResult> {
   const entries = panelEntries(options.galleries.map((gallery) => gallery.title));
   const built = [];
-  for (const gallery of options.galleries) built.push(await buildGallery(gallery, logger));
+  const demo = options.demo ?? false;
+  for (const gallery of options.galleries) built.push(await buildGallery(gallery, logger, demo));
 
   const totalBytes = built.reduce((sum, { html }) => sum + Buffer.byteLength(html), 0);
   if (totalBytes > PLUGIN_MAX_BYTES) {
@@ -177,7 +180,7 @@ export async function buildPlugin(
     ...built.map(({ html }, i) => writeFile(join(options.outDir, entries[i]?.entry ?? ''), html)),
     writeFile(
       join(options.outDir, MANIFEST_FILE),
-      `${JSON.stringify(createManifest(options.name, entries), null, 2)}\n`,
+      `${JSON.stringify(createManifest(options.name, entries, { demo }), null, 2)}\n`,
     ),
   ]);
   await removeStalePanels(options.outDir, new Set(entries.map(({ entry }) => entry)));

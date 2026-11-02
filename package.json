@@ -50,7 +50,9 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
     "test:e2e": "node --test --test-concurrency=1 \"test/e2e/**/*.test.ts\"",
     "build:lib": "node scripts/build-lib.ts",
-    "prepack": "npm run build:lib"
+    "build:demo": "node scripts/build-demo-plugin.ts",
+    "prepack": "npm run build:lib",
+    "version": "npm run build:demo && git add plugin"
   },
   "dependencies": {
     "esbuild": "^0.28.2",
