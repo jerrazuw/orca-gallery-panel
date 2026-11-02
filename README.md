@@ -17,11 +17,14 @@ can change without leaving Orca.
 
 - **Slideshow**: shuffles your images and changes them on an interval you choose. Every image
   shows once before any repeats, and the same one never appears twice in a row.
-- **Controls** on hover: previous, pause/resume, next, a position counter, interval, display
-  settings and fit/fill.
+- **Several at once**: `--layout stack` stacks 2 to 4 images top to bottom, with no image on
+  screen twice. They change one at a time, taking turns, or all together with `--rotate all`.
+- **Controls** on hover: previous, pause/resume, next, a position counter (slideshow only),
+  interval, display settings and fit/fill.
 - **Settings in the panel**: click the clock to type the seconds between images (`0` stops the
-  automatic change), or the sliders to turn on a blurred background, a slow Ken Burns zoom or
-  the image's name. Changes last until Orca reloads the panel, because Orca gives panels no
+  automatic change), or the sliders to turn on a blurred background, a slow Ken Burns zoom,
+  the image's name or the stacked layout, and to pick how many images it stacks and whether they
+  change one at a time. Changes last until Orca reloads the panel, because Orca gives panels no
   storage; the defaults come from your build settings.
 - **Blurred background**: an image that doesn't fill the panel sits on a blurred copy of itself
   instead of empty bars.
@@ -115,27 +118,43 @@ git, so your paths stay on your machine; `gallery.config.example.json` is a star
 
 ## Options
 
-| Option                  | Config key  | Default   | Description                                       |
-| ----------------------- | ----------- | --------- | ------------------------------------------------- |
-| `[folder]`              | `folder`    | `images`  | Folder with your images.                          |
-| `-o, --out <dir>`       | `out`       | `dist`    | Output folder for the plugin.                     |
-| `-t, --title <text>`    | `title`     | `Gallery` | Panel title shown in Orca.                        |
-| `-i, --interval <sec>`  | `interval`  | `180`     | Seconds between images. `0` disables rotation.    |
-| `-s, --max-size <px>`   | `maxSize`   | `800`     | Longest side of each image, in pixels.            |
-| `-q, --quality <1-100>` | `quality`   | `80`      | WebP quality.                                     |
-| `--fit <mode>`          | `fit`       | `contain` | Initial mode: `contain` (whole image) or `cover`. |
-| `--effect <name>`       | `effect`    | `none`    | `none`, or `kenburns` for a slow zoom.            |
-| `--no-blur`             | `blur`      | `true`    | Blurred background behind images.                 |
-| `--caption`             | `caption`   | `false`   | Show the image's file name.                       |
-| `-r, --recursive`       | `recursive` | `false`   | Include images in subfolders.                     |
-|                         | `galleries` |           | Several galleries; see above.                     |
-| `-w, --watch`           |             |           | Rebuild when images or the config file change.    |
-| `-c, --config <file>`   |             |           | Config file to read instead of the default.       |
+| Option                  | Config key  | Default     | Description                                        |
+| ----------------------- | ----------- | ----------- | -------------------------------------------------- |
+| `[folder]`              | `folder`    | `images`    | Folder with your images.                           |
+| `-o, --out <dir>`       | `out`       | `dist`      | Output folder for the plugin.                      |
+| `-t, --title <text>`    | `title`     | `Gallery`   | Panel title shown in Orca.                         |
+| `-i, --interval <sec>`  | `interval`  | `180`       | Seconds between images. `0` disables rotation.     |
+| `-s, --max-size <px>`   | `maxSize`   | `800`       | Longest side of each image, in pixels.             |
+| `-q, --quality <1-100>` | `quality`   | `80`        | WebP quality.                                      |
+| `--fit <mode>`          | `fit`       | `contain`   | Initial mode: `contain` (whole image) or `cover`.  |
+| `--effect <name>`       | `effect`    | `none`      | `none`, or `kenburns` for a slow zoom.             |
+| `--no-blur`             | `blur`      | `true`      | Blurred background behind images.                  |
+| `--caption`             | `caption`   | `false`     | Show the image's file name.                        |
+| `-r, --recursive`       | `recursive` | `false`     | Include images in subfolders.                      |
+| `--layout <mode>`       | `layout`    | `slideshow` | `slideshow`, or `stack` for several at once.       |
+| `--count <2-4>`         | `count`     | `3`         | Images stacked at once with `stack`.               |
+| `--rotate <mode>`       | `rotate`    | `one`       | With `stack`: change `one` per interval, or `all`. |
+|                         | `galleries` |             | Several galleries; see above.                      |
+| `-w, --watch`           |             |             | Rebuild when images or the config file change.     |
+| `-c, --config <file>`   |             |             | Config file to read instead of the default.        |
 
 Precedence: command line, then the gallery's own settings, then the top level of
 `gallery.config.json`, then the defaults. Paths in the config file are relative to the file, and
-`~` means your home folder. The `fit`, `interval`, `blur`, `effect` and `caption` settings are
-only where the panel starts: you can change them from the panel itself.
+`~` means your home folder. The `fit`, `interval`, `blur`, `effect`, `caption`, `layout`,
+`count` and `rotate` settings are only where the panel starts: you can change them from the panel
+itself.
+
+### Several images at once
+
+```bash
+npx orca-gallery-panel ~/Pictures/wallpapers --out ~/orca-gallery --layout stack --watch
+```
+
+The panel splits into three images stacked top to bottom (`--count 2` to `4` changes that), never
+the same image twice. Every interval one of them changes, top to bottom in turn, so each stays up
+for three intervals; with `--rotate all` the whole set changes at once. Next and previous swap the
+whole set, and clicking an image replaces just that one. With fewer images than places, it stacks
+as many as there are.
 
 ### Several galleries
 

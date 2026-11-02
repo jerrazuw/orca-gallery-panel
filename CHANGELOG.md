@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Stacked layout: `--layout stack` (or `"layout": "stack"`) shows 2 to 4 images at once, stacked
+  top to bottom, never the same one twice. `--count` sets how many (default 3), and `--rotate`
+  whether they change one at a time, taking turns (default), or all together. The display settings
+  menu switches the layout, the count and the turn-taking without a rebuild.
+
 ## [1.4.0] - 2026-11-02
 
 ### Added

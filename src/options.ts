@@ -6,9 +6,17 @@ import {
   FIT_MODES,
   isEffect,
   isFitMode,
+  isLayout,
+  isRotation,
+  LAYOUTS,
   MAX_INTERVAL_SECONDS,
+  MAX_STACK_COUNT,
+  MIN_STACK_COUNT,
+  ROTATIONS,
   type Effect,
   type FitMode,
+  type Layout,
+  type Rotation,
 } from './panel/config.ts';
 
 /** Settings that can differ per gallery. */
@@ -23,6 +31,9 @@ export interface GallerySettings {
   effect?: Effect;
   caption?: boolean;
   recursive?: boolean;
+  layout?: Layout;
+  count?: number;
+  rotate?: Rotation;
 }
 
 /** What a user can set, from the command line or a config file. Every field is optional. */
@@ -42,6 +53,9 @@ export interface GalleryOptions {
   effect: Effect;
   caption: boolean;
   recursive: boolean;
+  layout: Layout;
+  count: number;
+  rotate: Rotation;
 }
 
 export interface BuildOptions {
@@ -76,6 +90,9 @@ export const DEFAULTS = {
   effect: 'none',
   caption: false,
   recursive: false,
+  layout: 'slideshow',
+  count: 3,
+  rotate: 'one',
 } as const satisfies Required<GallerySettings> & { out: string };
 
 export const GALLERY_KEYS = [
@@ -89,6 +106,9 @@ export const GALLERY_KEYS = [
   'effect',
   'caption',
   'recursive',
+  'layout',
+  'count',
+  'rotate',
 ] as const satisfies readonly (keyof GallerySettings)[];
 
 export const SETTING_KEYS = [
@@ -101,6 +121,7 @@ const LIMITS = {
   interval: [0, MAX_INTERVAL_SECONDS],
   maxSize: [16, 8192],
   quality: [1, 100],
+  count: [MIN_STACK_COUNT, MAX_STACK_COUNT],
 } as const;
 
 export const HELP = `Build an Orca side panel plugin from a folder of images.
@@ -122,6 +143,9 @@ Options:
       --effect <name>    ${EFFECTS.join(' | ')} (default: ${DEFAULTS.effect})
       --no-blur          No blurred background behind images that don't fill the panel
       --caption          Show the image name
+      --layout <mode>    ${LAYOUTS.join(' | ')}: one image, or several stacked (default: ${DEFAULTS.layout})
+      --count <2-4>      Images stacked at once with --layout stack (default: ${String(DEFAULTS.count)})
+      --rotate <mode>    With --layout stack, change ${ROTATIONS.join(' | ')} image(s) per interval (default: ${DEFAULTS.rotate})
   -r, --recursive        Include images in subfolders
   -w, --watch            Rebuild whenever the images or the config file change
   -c, --config <file>    Read settings from this file (default: ./${CONFIG_FILE} if it exists)
@@ -163,7 +187,7 @@ export function validateGallerySettings(
     }
   }
 
-  for (const key of ['interval', 'maxSize', 'quality'] as const) {
+  for (const key of ['interval', 'maxSize', 'quality', 'count'] as const) {
     const value = raw[key];
     if (value === undefined) continue;
     const [min, max] = LIMITS[key];
@@ -190,6 +214,22 @@ export function validateGallerySettings(
       );
     }
     settings.effect = raw['effect'];
+  }
+  if (raw['layout'] !== undefined) {
+    if (!isLayout(raw['layout'])) {
+      throw new UsageError(
+        `${name('layout')} must be one of ${LAYOUTS.join(', ')}, got ${JSON.stringify(raw['layout'])}`,
+      );
+    }
+    settings.layout = raw['layout'];
+  }
+  if (raw['rotate'] !== undefined) {
+    if (!isRotation(raw['rotate'])) {
+      throw new UsageError(
+        `${name('rotate')} must be one of ${ROTATIONS.join(', ')}, got ${JSON.stringify(raw['rotate'])}`,
+      );
+    }
+    settings.rotate = raw['rotate'];
   }
 
   for (const key of ['blur', 'caption', 'recursive'] as const) {
@@ -246,6 +286,9 @@ const FLAG_NAMES: Record<string, string> = {
   blur: '--no-blur',
   caption: '--caption',
   recursive: '--recursive',
+  layout: '--layout',
+  count: '--count',
+  rotate: '--rotate',
 };
 
 /** Numeric flags arrive as text; anything that is not a plain number is kept so validation reports it. */
@@ -272,6 +315,9 @@ export function parseCommand(argv: readonly string[]): ParsedCommand {
         'no-blur': { type: 'boolean' },
         caption: { type: 'boolean' },
         recursive: { type: 'boolean', short: 'r' },
+        layout: { type: 'string' },
+        count: { type: 'string' },
+        rotate: { type: 'string' },
         watch: { type: 'boolean', short: 'w', default: false },
         config: { type: 'string', short: 'c' },
         help: { type: 'boolean', short: 'h', default: false },
@@ -304,6 +350,9 @@ export function parseCommand(argv: readonly string[]): ParsedCommand {
       blur: values['no-blur'] === true ? false : undefined,
       caption: values.caption,
       recursive: values.recursive,
+      layout: values.layout,
+      count: numberFlag(values.count),
+      rotate: values.rotate,
     },
     (key) => FLAG_NAMES[key] ?? key,
   );
@@ -357,6 +406,9 @@ function galleryOptions(
     effect: pick('effect').value,
     caption: pick('caption').value,
     recursive: pick('recursive').value,
+    layout: pick('layout').value,
+    count: pick('count').value,
+    rotate: pick('rotate').value,
   };
 }
 

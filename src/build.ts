@@ -140,6 +140,9 @@ async function buildGallery(
     blur: gallery.blur,
     effect: gallery.effect,
     caption: gallery.caption,
+    layout: gallery.layout,
+    count: gallery.count,
+    rotate: gallery.rotate,
     demo,
   });
   const panelBytes = Buffer.byteLength(html);

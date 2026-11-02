@@ -10,17 +10,23 @@
   </head>
   <body>
     <main class="stage">
-      <div id="layer-a" class="layer">
-        <img class="backdrop" alt="" aria-hidden="true" />
-        <img class="photo" alt="" />
-      </div>
-      <div id="layer-b" class="layer">
-        <img class="backdrop" alt="" aria-hidden="true" />
-        <img class="photo" alt="" />
-      </div>
-      <p id="caption" class="caption"></p>
+      <div id="slots" class="slots"></div>
       <p id="message" class="message-text" role="status"></p>
     </main>
+
+    <template id="slot-template">
+      <div class="slot">
+        <div class="layer">
+          <img class="backdrop" alt="" aria-hidden="true" />
+          <img class="photo" alt="" />
+        </div>
+        <div class="layer">
+          <img class="backdrop" alt="" aria-hidden="true" />
+          <img class="photo" alt="" />
+        </div>
+        <p class="caption"></p>
+      </div>
+    </template>
 
     <aside id="demo-note" class="demo-note" aria-labelledby="demo-title" hidden>
       <p id="demo-title" class="demo-title"></p>
@@ -113,6 +119,22 @@
         </label>
         <label class="switch">
           <input type="checkbox" role="switch" data-setting="caption" />
+          <span></span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" role="switch" data-setting="stack" />
+          <span></span>
+        </label>
+        <div class="count-row" role="radiogroup" aria-labelledby="count-label">
+          <span id="count-label"></span>
+          <span class="segmented">
+            <label><input type="radio" name="count" value="2" /><span>2</span></label>
+            <label><input type="radio" name="count" value="3" /><span>3</span></label>
+            <label><input type="radio" name="count" value="4" /><span>4</span></label>
+          </span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" role="switch" data-setting="rotateOne" />
           <span></span>
         </label>
         <p id="settings-note" class="hint"></p>

@@ -40,6 +40,26 @@ body {
   overflow: hidden;
 }
 
+/* One slot for the slideshow; up to four stacked top to bottom for the stack layout. */
+.slots {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slot {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.slot[hidden] {
+  display: none;
+}
+
 .layer {
   position: absolute;
   inset: 0;
@@ -144,6 +164,7 @@ body.message .message-text {
 }
 
 body.message .controls,
+body.message .slots,
 body.message .layer,
 body.message .caption {
   display: none;
@@ -342,6 +363,72 @@ body.single .counter {
 .switch input:checked::after {
   background: var(--gallery-primary-fg);
   transform: translateX(12px);
+}
+
+/* The stack shows several images, so a single position means nothing. */
+body[data-layout='stack'] .counter {
+  display: none;
+}
+
+.count-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: calc(var(--gallery-radius) - 4px);
+  background: var(--gallery-input);
+}
+
+.segmented label {
+  position: relative;
+  cursor: pointer;
+}
+
+.segmented input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segmented span {
+  display: block;
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: calc(var(--gallery-radius) - 6px);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.segmented input:checked + span {
+  background: var(--gallery-primary);
+  color: var(--gallery-primary-fg);
+  font-weight: 600;
+}
+
+.segmented input:focus-visible + span {
+  outline: 2px solid var(--gallery-ring);
+  outline-offset: 1px;
+}
+
+/* Count and turn-taking only apply to the stack. */
+.switch:has(input:disabled),
+.count-row:has(input:disabled) {
+  opacity: 0.45;
+}
+
+.switch:has(input:disabled),
+.switch input:disabled,
+.segmented input:disabled,
+.segmented label:has(input:disabled) {
+  cursor: default;
 }
 
 .hint {

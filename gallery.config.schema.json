@@ -67,6 +67,23 @@
       "description": "Include images in subfolders.",
       "default": false
     },
+    "layout": {
+      "enum": ["slideshow", "stack"],
+      "description": "slideshow shows one image at a time; stack shows several stacked top to bottom.",
+      "default": "slideshow"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 4,
+      "description": "Images shown at once with the stack layout.",
+      "default": 3
+    },
+    "rotate": {
+      "enum": ["one", "all"],
+      "description": "With the stack layout: change one image per interval, taking turns, or all of them at once.",
+      "default": "one"
+    },
     "out": {
       "type": "string",
       "minLength": 1,
@@ -120,6 +137,15 @@
         },
         "recursive": {
           "$ref": "#/properties/recursive"
+        },
+        "layout": {
+          "$ref": "#/properties/layout"
+        },
+        "count": {
+          "$ref": "#/properties/count"
+        },
+        "rotate": {
+          "$ref": "#/properties/rotate"
         }
       }
     }

@@ -14,6 +14,9 @@ export interface Messages {
   blur: string;
   kenburns: string;
   caption: string;
+  stack: string;
+  count: string;
+  rotateOne: string;
   settingsNote: string;
   counter: (position: number, total: number) => string;
   empty: string;
@@ -44,6 +47,9 @@ const en: Messages = {
   blur: 'Blurred background',
   kenburns: 'Slow zoom (Ken Burns)',
   caption: 'Show image name',
+  stack: 'Several images, stacked',
+  count: 'Images at once',
+  rotateOne: 'Change one at a time',
   settingsNote: 'Changes last until the panel reloads. Set defaults in gallery.config.json.',
   counter: (position, total) => `Image ${String(position)} of ${String(total)}`,
   empty: 'No images yet. Rebuild the panel with a folder that contains images.',
@@ -76,6 +82,9 @@ const es: Messages = {
   blur: 'Fondo difuminado',
   kenburns: 'Zoom lento (Ken Burns)',
   caption: 'Mostrar nombre',
+  stack: 'Varias imágenes apiladas',
+  count: 'Imágenes a la vez',
+  rotateOne: 'Cambiar de a una',
   settingsNote:
     'Los cambios duran hasta que el panel se recargue. Los valores por defecto van en gallery.config.json.',
   counter: (position, total) => `Imagen ${String(position)} de ${String(total)}`,

@@ -12,6 +12,9 @@ const BASE: Omit<GalleryConfig, 'images'> = {
   blur: true,
   effect: 'none',
   caption: false,
+  layout: 'slideshow',
+  count: 3,
+  rotate: 'one',
   demo: false,
 };
 const BROKEN: GalleryImage = { src: 'data:image/webp;base64,AAAA', label: 'broken' };
@@ -254,8 +257,8 @@ describe('panel in a sandboxed Orca-like frame', () => {
 
     await frame.click('label:has([data-setting="caption"])');
     assert.equal(await body('show-caption'), true);
-    assert.equal(await frame.isVisible('#caption'), true);
-    assert.equal(await frame.textContent('#caption'), await visibleLabel(frame));
+    assert.equal(await frame.isVisible('.caption'), true);
+    assert.equal(await frame.textContent('.caption'), await visibleLabel(frame));
 
     await frame.click('label:has([data-setting="blur"])');
     assert.equal(await body('blur'), false);
@@ -303,6 +306,129 @@ describe('panel in a sandboxed Orca-like frame', () => {
     assert.equal(await frame.isVisible('[data-action="interval"]'), false);
     assert.equal(await frame.isVisible('[data-action="fit"]'), true);
     await page.close();
+  });
+
+  describe('stack layout', () => {
+    let many: GalleryImage[];
+
+    before(async () => {
+      const colors = ['#f97316', '#84cc16', '#06b6d4', '#8b5cf6', '#ec4899', '#facc15'];
+      many = await Promise.all(colors.map((color, i) => solid(color, `image-${String(i)}`)));
+    });
+
+    /** The image shown in each slot in use, top to bottom (undefined while one is loading). */
+    const shown = (frame: Frame) =>
+      frame.$$eval('.slot:not([hidden])', (slots) =>
+        slots.map((slot) => slot.querySelector('.layer.visible .photo')?.getAttribute('alt')),
+      );
+    const settled = (frame: Frame, count: number) =>
+      waitFor(
+        () => shown(frame),
+        (labels) => labels.length === count && labels.every((label) => label !== undefined),
+      );
+
+    it('stacks several different images top to bottom', async () => {
+      const { page, frame, errors } = await open({ images: many, layout: 'stack', count: 3 });
+      const labels = await settled(frame, 3);
+      assert.equal(new Set(labels).size, 3, 'no image twice on screen');
+
+      const boxes = await frame.$$eval('.slot:not([hidden])', (slots) =>
+        slots.map((slot) => {
+          const { x, y, width, height } = slot.getBoundingClientRect();
+          return { x, y, width, height };
+        }),
+      );
+      for (const [i, box] of boxes.entries()) {
+        const above = boxes[i - 1];
+        assert.ok(box.height > 100, 'each image gets a real share of the panel');
+        if (!above) continue;
+        assert.equal(box.x, above.x, 'same column');
+        assert.ok(box.y >= above.y + above.height, 'below the one above');
+      }
+      assert.equal(await frame.isVisible('#counter'), false);
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    it('changes one image per interval, taking turns, and never shows one twice', async () => {
+      const { page, frame } = await open({
+        images: many,
+        layout: 'stack',
+        count: 3,
+        rotate: 'one',
+        intervalMs: 250,
+      });
+      let previous = await settled(frame, 3);
+      const changedSlots: number[] = [];
+      for (let round = 0; round < 4; round++) {
+        const current = await waitFor(
+          () => shown(frame),
+          (labels) =>
+            labels.every((label) => label !== undefined) &&
+            labels.some((label, i) => label !== previous[i]),
+        );
+        const changed = current.flatMap((label, i) => (label === previous[i] ? [] : [i]));
+        assert.equal(changed.length, 1, `one slot per change, got ${JSON.stringify(changed)}`);
+        assert.equal(new Set(current).size, 3, 'no image twice on screen');
+        changedSlots.push(changed[0] ?? -1);
+        previous = current;
+      }
+      assert.deepEqual(changedSlots, [0, 1, 2, 0]);
+      await page.close();
+    });
+
+    it('brings a whole new set with next, and the previous one back with previous', async () => {
+      const { page, frame } = await open({ images: many, layout: 'stack', count: 3 });
+      const first = await settled(frame, 3);
+      await frame.click('[data-action="next"]', { force: true });
+      const second = await waitFor(
+        () => shown(frame),
+        (labels) =>
+          labels.every((label) => label !== undefined) &&
+          labels.filter((label, i) => label !== first[i]).length >= 2,
+      );
+      assert.equal(new Set(second).size, 3);
+      await frame.click('[data-action="previous"]', { force: true });
+      await waitFor(
+        () => shown(frame),
+        (labels) => JSON.stringify(labels) === JSON.stringify(first),
+      );
+      await page.close();
+    });
+
+    it('uses only as many slots as there are images', async () => {
+      const { page, frame } = await open({ images: many.slice(0, 2), layout: 'stack', count: 4 });
+      const labels = await settled(frame, 2);
+      assert.equal(new Set(labels).size, 2);
+      await page.close();
+    });
+
+    it('switches layout, count and turn-taking from the settings menu', async () => {
+      const { page, frame } = await open({ images: many });
+      await settled(frame, 1);
+      await frame.click('[data-action="settings"]');
+      assert.equal(await frame.isDisabled('[data-setting="rotateOne"]'), true);
+      assert.equal(await frame.isDisabled('input[name="count"][value="2"]'), true);
+
+      await frame.click('label:has([data-setting="stack"])');
+      assert.equal(await frame.getAttribute('body', 'data-layout'), 'stack');
+      assert.equal(new Set(await settled(frame, 3)).size, 3);
+      assert.equal(await frame.isDisabled('[data-setting="rotateOne"]'), false);
+      assert.equal(await frame.isChecked('[data-setting="rotateOne"]'), true);
+
+      await frame.click('.segmented label:has(input[value="2"])');
+      await settled(frame, 2);
+      await frame.click('.segmented label:has(input[value="4"])');
+      assert.equal(new Set(await settled(frame, 4)).size, 4);
+
+      await frame.click('label:has([data-setting="rotateOne"])');
+      assert.equal(await frame.isChecked('[data-setting="rotateOne"]'), false);
+
+      await frame.click('label:has([data-setting="stack"])');
+      assert.equal(await frame.getAttribute('body', 'data-layout'), 'slideshow');
+      await settled(frame, 1);
+      await page.close();
+    });
   });
 
   it('explains how to load your own photos only in the demo build, until dismissed', async () => {

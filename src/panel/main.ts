@@ -1,8 +1,10 @@
 import {
   CONFIG_ELEMENT_ID,
+  MAX_STACK_COUNT,
   parseConfig,
   parseIntervalSeconds,
   type GalleryConfig,
+  type GalleryImage,
   type PanelSettings,
 } from './config.ts';
 import { catalogs, pickLocale, type Messages } from './i18n.ts';
@@ -98,16 +100,78 @@ class Popover {
   }
 }
 
-type Switch = 'blur' | 'kenburns' | 'caption';
+type Switch = 'blur' | 'kenburns' | 'caption' | 'stack' | 'rotateOne';
+const SWITCHES = ['blur', 'kenburns', 'caption', 'stack', 'rotateOne'] as const;
+/** Steps "previous" can walk back through in the stack layout. */
+const MAX_SNAPSHOTS = 100;
+
+/** One place for an image: two layers that cross-fade, a blurred backdrop each, and a caption. */
+class Slot {
+  readonly root: HTMLElement;
+  readonly #layers: readonly [HTMLElement, HTMLElement];
+  readonly #caption: HTMLElement;
+  #front: 0 | 1 = 0;
+  #shown = 0;
+  #request = 0;
+  /** The image shown or loading here; undefined while the slot is not in use. */
+  index: number | undefined;
+
+  constructor(root: HTMLElement) {
+    this.root = root;
+    const layers = root.querySelectorAll<HTMLElement>('.layer');
+    const [a, b] = [layers[0], layers[1]];
+    if (!a || !b) throw new Error('A slot needs two layers');
+    this.#layers = [a, b];
+    this.#caption = query('.caption', HTMLElement, root);
+  }
+
+  /** Loads into the hidden layer and cross-fades once it is decoded; stale loads are ignored. */
+  show(image: GalleryImage, index: number, loaded: () => void, failed: () => void): void {
+    this.index = index;
+    const request = ++this.#request;
+    const back = this.#layers[this.#front === 0 ? 1 : 0];
+    const front = this.#layers[this.#front];
+    const photo = query('.photo', HTMLImageElement, back);
+    const backdrop = query('.backdrop', HTMLImageElement, back);
+
+    photo.onload = () => {
+      if (request !== this.#request) return;
+      backdrop.src = image.src;
+      back.classList.toggle('alternate', this.#shown++ % 2 === 1);
+      // Flushes the removal of "animate" so the zoom restarts even if no frame ran in between.
+      back.getBoundingClientRect();
+      back.classList.add('visible', 'animate');
+      front.classList.remove('visible');
+      this.#front = this.#front === 0 ? 1 : 0;
+      this.#caption.textContent = image.label;
+      loaded();
+    };
+    photo.onerror = () => {
+      if (request !== this.#request) return;
+      failed();
+    };
+    // The outgoing layer keeps its zoom while it fades; this one restarts it once loaded.
+    back.classList.remove('animate');
+    photo.alt = image.label;
+    photo.src = image.src;
+  }
+
+  /** Takes the slot out of use, drops any load still in flight, and blanks it. */
+  clear(): void {
+    this.index = undefined;
+    this.#request++;
+    for (const layer of this.#layers) layer.classList.remove('visible', 'animate');
+    this.#caption.textContent = '';
+  }
+}
 
 class Gallery {
   readonly #config: GalleryConfig;
   readonly #t: Messages;
   readonly #playlist: Playlist;
-  readonly #layers: readonly [HTMLElement, HTMLElement];
+  readonly #slots: readonly Slot[];
   readonly #buttons: Record<'previous' | 'next' | 'toggle' | 'fit', HTMLButtonElement>;
   readonly #counter: HTMLElement;
-  readonly #caption: HTMLElement;
   readonly #interval: {
     popover: Popover;
     input: HTMLInputElement;
@@ -116,13 +180,15 @@ class Gallery {
   };
   readonly #settings: Popover;
   readonly #switches: Record<Switch, HTMLInputElement>;
+  readonly #counts: readonly HTMLInputElement[];
   readonly #failed = new Set<number>();
   readonly #state: PanelSettings;
-  #front: 0 | 1 = 0;
-  #shown = 0;
+  /** In the stack layout, which slot changes next when they take turns. */
+  #turn = 0;
+  /** In the stack layout, what was on screen before each change, for "previous". */
+  #snapshots: number[][] = [];
   #paused = false;
   #timer: ReturnType<typeof setTimeout> | undefined;
-  #request = 0;
 
   constructor(config: GalleryConfig, t: Messages) {
     this.#config = config;
@@ -133,11 +199,24 @@ class Gallery {
       blur: config.blur,
       effect: config.effect,
       caption: config.caption,
+      layout: config.layout,
+      count: config.count,
+      rotate: config.rotate,
     };
     this.#playlist = new Playlist(config.images.length);
-    this.#layers = [query('#layer-a', HTMLElement), query('#layer-b', HTMLElement)];
     this.#counter = query('#counter', HTMLElement);
-    this.#caption = query('#caption', HTMLElement);
+
+    const container = query('#slots', HTMLElement);
+    const template = query('#slot-template', HTMLTemplateElement);
+    this.#slots = Array.from({ length: MAX_STACK_COUNT }, () => {
+      const root = query(
+        '.slot',
+        HTMLElement,
+        template.content.cloneNode(true) as DocumentFragment,
+      );
+      container.append(root);
+      return new Slot(root);
+    });
 
     const button = (action: string) => query(`[data-action="${action}"]`, HTMLButtonElement);
     this.#buttons = {
@@ -165,11 +244,23 @@ class Gallery {
       blur: toggle('blur'),
       kenburns: toggle('kenburns'),
       caption: toggle('caption'),
+      stack: toggle('stack'),
+      rotateOne: toggle('rotateOne'),
     };
+    this.#counts = Array.from(document.querySelectorAll<HTMLInputElement>('input[name="count"]'));
   }
 
   get #size(): number {
     return this.#config.images.length;
+  }
+
+  /** How many slots are in use: one for the slideshow, up to `count` for the stack. */
+  get #active(): number {
+    return this.#state.layout === 'stack' ? Math.min(this.#state.count, this.#size) : 1;
+  }
+
+  get #activeSlots(): readonly Slot[] {
+    return this.#slots.slice(0, this.#active);
   }
 
   start(): void {
@@ -179,11 +270,17 @@ class Gallery {
     this.#bindInterval();
     this.#bindSettings();
 
-    for (const layer of this.#layers) {
-      layer.addEventListener('click', () => {
-        if (this.#size > 1) this.#next();
+    this.#slots.forEach((slot) => {
+      slot.root.addEventListener('click', () => {
+        if (this.#size <= 1) return;
+        if (this.#state.layout === 'stack') {
+          this.#remember();
+          this.#replace(slot);
+        } else {
+          this.#next();
+        }
       });
-    }
+    });
     document.addEventListener('pointerdown', (event) => {
       const open = Popover.current;
       if (open && !(event.target instanceof Node && open.contains(event.target))) open.close(false);
@@ -195,7 +292,7 @@ class Gallery {
       this.#schedule();
     });
 
-    this.#next();
+    this.#applyLayout();
   }
 
   #renderStaticText(): void {
@@ -210,7 +307,8 @@ class Gallery {
     this.#interval.apply.textContent = this.#t.apply;
     text('#settings-title', this.#t.settings);
     text('#settings-note', this.#t.settingsNote);
-    for (const name of ['blur', 'kenburns', 'caption'] as const) {
+    text('#count-label', this.#t.count);
+    for (const name of SWITCHES) {
       query('span', HTMLElement, this.#switches[name].closest('label') ?? document).textContent =
         this.#t[name];
     }
@@ -257,25 +355,41 @@ class Gallery {
     this.#switches.caption.addEventListener('change', () => {
       this.#update({ caption: this.#switches.caption.checked });
     });
+    this.#switches.stack.addEventListener('change', () => {
+      this.#update({ layout: this.#switches.stack.checked ? 'stack' : 'slideshow' });
+    });
+    this.#switches.rotateOne.addEventListener('change', () => {
+      this.#update({ rotate: this.#switches.rotateOne.checked ? 'one' : 'all' });
+    });
+    for (const radio of this.#counts) {
+      radio.addEventListener('change', () => {
+        if (radio.checked) this.#update({ count: Number(radio.value) });
+      });
+    }
   }
 
   #update(change: Partial<PanelSettings>): void {
     Object.assign(this.#state, change);
     this.#renderAll();
-    if (change.intervalMs !== undefined) this.#schedule();
+    if (change.layout !== undefined || change.count !== undefined) this.#applyLayout();
+    else if (change.intervalMs !== undefined || change.rotate !== undefined) this.#schedule();
   }
 
   #renderAll(): void {
-    const { fit, blur, effect, caption, intervalMs } = this.#state;
+    const { fit, blur, effect, caption, intervalMs, layout, count, rotate } = this.#state;
     const body = document.body;
     body.dataset['fit'] = fit;
+    body.dataset['layout'] = layout;
     body.classList.toggle('blur', blur);
     body.classList.toggle('kenburns', effect === 'kenburns');
     body.classList.toggle('show-caption', caption);
     body.classList.toggle('paused', this.#paused);
+    // Taking turns, each image stays up for one interval per slot.
+    const visibleMs =
+      layout === 'stack' && rotate === 'one' ? intervalMs * this.#active : intervalMs;
     body.style.setProperty(
       '--gallery-kenburns',
-      `${String(intervalMs > 0 ? intervalMs + 600 : KEN_BURNS_IDLE_MS)}ms`,
+      `${String(visibleMs > 0 ? visibleMs + 600 : KEN_BURNS_IDLE_MS)}ms`,
     );
 
     setLabel(this.#buttons.fit, fit === 'contain' ? this.#t.fill : this.#t.fit);
@@ -286,62 +400,146 @@ class Gallery {
     this.#switches.blur.checked = blur;
     this.#switches.kenburns.checked = effect === 'kenburns';
     this.#switches.caption.checked = caption;
+    this.#switches.stack.checked = layout === 'stack';
+    this.#switches.rotateOne.checked = rotate === 'one';
+    this.#switches.rotateOne.disabled = layout !== 'stack';
+    for (const radio of this.#counts) {
+      radio.checked = Number(radio.value) === count;
+      radio.disabled = layout !== 'stack';
+    }
+  }
+
+  /** Shows the slots the layout uses, hides the rest, and fills any that are empty. */
+  #applyLayout(): void {
+    const active = this.#active;
+    this.#slots.forEach((slot, i) => {
+      slot.root.hidden = i >= active;
+      if (i >= active) slot.clear();
+    });
+    this.#snapshots = [];
+    this.#turn = 0;
+    for (const slot of this.#activeSlots) {
+      if (slot.index === undefined) this.#replace(slot);
+    }
+    const [first] = this.#slots;
+    if (this.#state.layout === 'slideshow' && first?.index !== undefined) {
+      this.#renderCounter(first.index);
+    }
+    this.#schedule();
+  }
+
+  /** The next image from the playlist that hasn't failed and isn't in `exclude`. */
+  #draw(exclude: ReadonlySet<number>): number | undefined {
+    // Every cycle holds each image once, so two cycles always reach any free image.
+    for (let tries = 0; tries < this.#size * 2; tries++) {
+      const index = this.#playlist.next();
+      if (!this.#failed.has(index) && !exclude.has(index)) return index;
+    }
+    return undefined;
+  }
+
+  /** Images on screen in the slots in use, except in `slot`. */
+  #onScreen(except?: Slot): Set<number> {
+    const shown = new Set<number>();
+    for (const slot of this.#activeSlots) {
+      if (slot !== except && slot.index !== undefined) shown.add(slot.index);
+    }
+    return shown;
+  }
+
+  /** Puts a different image, not on screen elsewhere, in one slot. */
+  #replace(slot: Slot): void {
+    const exclude = this.#onScreen(slot);
+    if (slot.index !== undefined) exclude.add(slot.index);
+    const index = this.#draw(exclude);
+    if (index !== undefined) this.#load(slot, index);
+  }
+
+  #load(slot: Slot, index: number): void {
+    const image = this.#config.images[index];
+    if (!image) return;
+    slot.show(
+      image,
+      index,
+      () => {
+        if (this.#state.layout === 'slideshow') this.#renderCounter(index);
+        this.#schedule();
+      },
+      () => {
+        this.#failed.add(index);
+        // Keeps showing what was there while another image loads.
+        slot.index = undefined;
+        if (this.#failed.size >= this.#size) {
+          clearTimeout(this.#timer);
+          showMessage(this.#t.allFailed);
+          return;
+        }
+        this.#replace(slot);
+      },
+    );
+  }
+
+  /** Saves what is on screen so "previous" in the stack layout can bring it back. */
+  #remember(): void {
+    const current = this.#activeSlots.map((slot) => slot.index);
+    if (current.some((index) => index === undefined)) return;
+    this.#snapshots.push(current as number[]);
+    if (this.#snapshots.length > MAX_SNAPSHOTS) this.#snapshots.shift();
   }
 
   #next(): void {
-    this.#show(this.#playlist.next());
+    if (this.#state.layout === 'slideshow') {
+      const index = this.#draw(new Set());
+      const [slot] = this.#slots;
+      if (index !== undefined && slot) this.#load(slot, index);
+      return;
+    }
+    // A whole new set, with no image twice.
+    this.#remember();
+    const chosen = new Set<number>();
+    for (const slot of this.#activeSlots) {
+      const index = this.#draw(chosen);
+      if (index === undefined) continue;
+      chosen.add(index);
+      this.#load(slot, index);
+    }
   }
 
   #previous(): void {
-    this.#show(this.#playlist.previous());
+    if (this.#state.layout === 'slideshow') {
+      const [slot] = this.#slots;
+      if (slot) this.#load(slot, this.#playlist.previous());
+      return;
+    }
+    const snapshot = this.#snapshots.pop();
+    if (!snapshot) return;
+    this.#activeSlots.forEach((slot, i) => {
+      const index = snapshot[i];
+      if (index !== undefined && index !== slot.index) this.#load(slot, index);
+    });
   }
 
-  /** Loads into the hidden layer and cross-fades once it is decoded; stale loads are ignored. */
-  #show(index: number): void {
-    const image = this.#config.images[index];
-    if (!image) return;
-    const request = ++this.#request;
-    const back = this.#layers[this.#front === 0 ? 1 : 0];
-    const front = this.#layers[this.#front];
-    const photo = query('.photo', HTMLImageElement, back);
-    const backdrop = query('.backdrop', HTMLImageElement, back);
-
-    photo.onload = () => {
-      if (request !== this.#request) return;
-      backdrop.src = image.src;
-      back.classList.toggle('alternate', this.#shown++ % 2 === 1);
-      // Flushes the removal of "animate" so the zoom restarts even if no frame ran in between.
-      back.getBoundingClientRect();
-      back.classList.add('visible', 'animate');
-      front.classList.remove('visible');
-      this.#front = this.#front === 0 ? 1 : 0;
-      this.#caption.textContent = image.label;
-      this.#renderCounter(index);
-      this.#schedule();
-    };
-    photo.onerror = () => {
-      if (request !== this.#request) return;
-      this.#failed.add(index);
-      if (this.#failed.size >= this.#size) {
-        clearTimeout(this.#timer);
-        showMessage(this.#t.allFailed);
-        return;
-      }
-      this.#next();
-    };
-    // The outgoing layer keeps its zoom while it fades; this one restarts it once loaded.
-    back.classList.remove('animate');
-    photo.alt = image.label;
-    photo.src = image.src;
+  /** What the timer does: the next image, the next set, or the next slot's turn. */
+  #advance(): void {
+    if (this.#state.layout === 'stack' && this.#state.rotate === 'one') {
+      const slots = this.#activeSlots;
+      const slot = slots[this.#turn % slots.length];
+      this.#turn = (this.#turn + 1) % slots.length;
+      if (!slot) return;
+      this.#remember();
+      this.#replace(slot);
+      return;
+    }
+    this.#next();
   }
 
   #schedule(): void {
     clearTimeout(this.#timer);
     this.#timer = undefined;
-    const rotates = this.#state.intervalMs > 0 && this.#size > 1;
+    const rotates = this.#state.intervalMs > 0 && this.#size > this.#active;
     if (rotates && !this.#paused && !document.hidden) {
       this.#timer = setTimeout(() => {
-        this.#next();
+        this.#advance();
       }, this.#state.intervalMs);
     }
   }

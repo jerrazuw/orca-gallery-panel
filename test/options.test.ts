@@ -47,6 +47,12 @@ describe('parseCommand', () => {
         '--no-blur',
         '--caption',
         '-r',
+        '--layout',
+        'stack',
+        '--count',
+        '4',
+        '--rotate',
+        'all',
       ]),
       {
         folder: 'photos',
@@ -60,6 +66,9 @@ describe('parseCommand', () => {
         blur: false,
         caption: true,
         recursive: true,
+        layout: 'stack',
+        count: 4,
+        rotate: 'all',
       },
     );
   });
@@ -82,6 +91,10 @@ describe('parseCommand', () => {
     [['--interval', '1.5'], /--interval/],
     [['--fit', 'stretch'], /--fit must be one of contain, cover/],
     [['--effect', 'spin'], /--effect must be one of none, kenburns/],
+    [['--layout', 'grid'], /--layout must be one of slideshow, stack/],
+    [['--count', '5'], /--count must be an integer between 2 and 4, got 5/],
+    [['--count', '1'], /--count must be an integer between 2 and 4, got 1/],
+    [['--rotate', 'some'], /--rotate must be one of one, all/],
     [['--title', '   '], /--title must be a non-empty text/],
     [['a', 'b'], /at most one folder/],
     [['--nope'], /Unknown option/],
@@ -122,6 +135,9 @@ describe('resolveOptions', () => {
       effect: DEFAULTS.effect,
       caption: DEFAULTS.caption,
       recursive: DEFAULTS.recursive,
+      layout: DEFAULTS.layout,
+      count: DEFAULTS.count,
+      rotate: DEFAULTS.rotate,
     });
   });
 
