@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-02
+
 ### Added
 
 - Listed in Orca's plugin directory as **Gallery Panel (demo)**: the sample images, with a note in
@@ -80,7 +82,8 @@ All notable changes to this project are documented here. The format follows
   Orca supports, so the panel showed a generic plug.
 - `engines.orca` is now `>=1.4.160`, the first Orca release with plugin support.
 
-[Unreleased]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.0.0...v1.1.0
