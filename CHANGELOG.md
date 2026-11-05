@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-05
+
+### Fixed
+
+- The demo in `plugin/` uses manifest format 2 (`"execution": "sandboxed-ui"`, Orca 1.4.245 or
+  later), the only format Orca's plugin directory installs. Its indexer turned down 1.5.0 for the
+  old format. Panels built from your own folder keep format 1, so they still load on Orca 1.4.160
+  and later.
+
 ## [1.5.0] - 2026-11-02
 
 ### Added
@@ -91,7 +100,8 @@ All notable changes to this project are documented here. The format follows
   Orca supports, so the panel showed a generic plug.
 - `engines.orca` is now `>=1.4.160`, the first Orca release with plugin support.
 
-[Unreleased]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/jerrazuw/orca-gallery-panel/compare/v1.2.0...v1.3.0
