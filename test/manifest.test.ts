@@ -94,6 +94,19 @@ describe('createManifest for the demo', () => {
     assert.equal(regular.icon, undefined);
   });
 
+  it('uses manifest format 2, the only one the plugin directory installs', () => {
+    assert.equal(demo.manifestVersion, 2);
+    assert.equal(demo.execution, 'sandboxed-ui');
+    assert.equal(demo.engines.orca, '>=1.4.245');
+    assert.equal(demo.license, 'MIT');
+  });
+
+  it('keeps folder builds on format 1, which loads back to Orca 1.4.160', () => {
+    assert.equal(regular.manifestVersion, 1);
+    assert.equal(regular.execution, undefined);
+    assert.equal(regular.engines.orca, '>=1.4.160');
+  });
+
   it('matches the committed plugin/ build (run npm run build:demo after changing it)', async () => {
     const committed: unknown = JSON.parse(
       await readFile(new URL('../plugin/orca-plugin.json', import.meta.url), 'utf8'),

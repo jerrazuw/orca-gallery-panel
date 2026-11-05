@@ -5,6 +5,7 @@ interface PackageInfo {
   description: string;
   author: { name: string; url: string };
   repository: { url: string };
+  license: string;
 }
 
 /**

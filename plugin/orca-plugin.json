@@ -1,5 +1,6 @@
 {
-  "manifestVersion": 1,
+  "manifestVersion": 2,
+  "execution": "sandboxed-ui",
   "id": "gallery-panel-demo",
   "publisher": "jerrazuw",
   "name": "Gallery Panel (demo)",
@@ -10,8 +11,9 @@
     "url": "https://github.com/jerrazuw"
   },
   "repository": "https://github.com/jerrazuw/orca-gallery-panel.git",
+  "license": "MIT",
   "engines": {
-    "orca": ">=1.4.160"
+    "orca": ">=1.4.245"
   },
   "icon": "icon.png",
   "pluginApi": 1,

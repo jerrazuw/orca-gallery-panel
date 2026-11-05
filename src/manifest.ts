@@ -18,11 +18,20 @@ export const PANEL_ENTRY = 'panel.html';
 export const MANIFEST_FILE = 'orca-plugin.json';
 /** First Orca release with the plugin system (stablyai/orca#8549). */
 export const MIN_ORCA_VERSION = '1.4.160';
+/**
+ * First Orca release that reads manifest format 2. Orca's plugin directory installs
+ * only format 2, so the demo build needs this; the builds people load from a folder
+ * stay on format 1, which Orca still loads and which works back to MIN_ORCA_VERSION.
+ */
+export const MIN_ORCA_VERSION_V2 = '1.4.245';
+/** Format 2 declares the most authority a plugin needs; a panel needs this one. */
+export const EXECUTION = 'sandboxed-ui';
 /** One of Orca's curated panel icons; there is no "image" icon. */
 export const PANEL_ICON = 'layers';
 
 export interface OrcaPluginManifest {
-  manifestVersion: 1;
+  manifestVersion: 1 | 2;
+  execution?: typeof EXECUTION;
   id: string;
   publisher: string;
   name: string;
@@ -30,6 +39,7 @@ export interface OrcaPluginManifest {
   description: string;
   author: { name: string; url: string };
   repository: string;
+  license?: string;
   engines: { orca: string };
   icon?: string;
   pluginApi: 1;
@@ -86,7 +96,7 @@ export function createManifest(
   { demo = false }: { demo?: boolean } = {},
 ): OrcaPluginManifest {
   return {
-    manifestVersion: 1,
+    ...(demo ? { manifestVersion: 2, execution: EXECUTION } : { manifestVersion: 1 }),
     id: demo ? DEMO_PLUGIN_ID : PLUGIN_ID,
     publisher: PUBLISHER,
     name,
@@ -94,7 +104,8 @@ export function createManifest(
     description: demo ? DEMO_DESCRIPTION : pkg.description,
     author: pkg.author,
     repository: pkg.repository.url.replace(/^git\+/, ''),
-    engines: { orca: `>=${MIN_ORCA_VERSION}` },
+    ...(demo ? { license: pkg.license } : {}),
+    engines: { orca: `>=${demo ? MIN_ORCA_VERSION_V2 : MIN_ORCA_VERSION}` },
     ...(demo ? { icon: DEMO_ICON } : {}),
     pluginApi: 1,
     contributes: {
